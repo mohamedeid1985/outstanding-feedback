@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Outstanding invoices – feedback collector</title>
+<style>
+:root{--bg:#eef7f6;--fg:#17324d;--mut:#5b7083;--card:#fff;--bd:#cfe3e1;--acc:#0b7f72;--ok:#16a34a;--warn:#e8731a;--inp:#fffbe6;--hd1:#0b7f72;--hd2:#1d5fa8;--sun:#ffc233;--chip:#e3f6f2;--onacc:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1b22;--fg:#e6f1f4;--mut:#93aab5;--card:#17262e;--bd:#2a4350;--acc:#37c9b4;--ok:#4ade80;--warn:#ffa24d;--inp:#2a2a1c;--hd1:#0b5f58;--hd2:#173e6e;--chip:#1c3a3d;--onacc:#062a26;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 Arial,Helvetica,sans-serif}
+header{position:sticky;top:0;background:linear-gradient(120deg,var(--hd1),var(--hd2));color:#fff;border-bottom:3px solid var(--sun);box-shadow:0 2px 8px rgba(0,0,0,.15);padding:12px 14px;z-index:5}header label,header .sm{color:#fff}
+h1{font-size:18px;margin:0 0 8px}.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+select,input,textarea,button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:6px 8px;max-width:100%}
+button{cursor:pointer;background:var(--acc);color:var(--onacc);border:0;font-weight:700;padding:7px 12px}button.alt{background:var(--card);color:var(--fg);border:1px solid var(--bd)}
+.prog{height:8px;background:rgba(255,255,255,.3);border-radius:3px;flex:1 1 140px;min-width:120px;overflow:hidden}.prog i{display:block;height:100%;background:var(--sun);width:0}
+main{max-width:900px;margin:0 auto;padding:12px 14px 40px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{font-size:12px;font-weight:700;color:var(--acc);border:1px solid var(--bd);border-radius:14px;padding:3px 10px;background:var(--chip);cursor:pointer}
+.card{background:var(--card);border:1px solid var(--bd);border-left:5px solid var(--warn);border-radius:12px;box-shadow:0 1px 5px rgba(15,60,70,.1);padding:12px 14px;margin:12px 0}.card.done{border-left-color:var(--ok)}.card.dirty{border-left-color:var(--sun)}.saverow{display:flex;gap:10px;align-items:center;margin-top:8px}
+.top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.name{font-weight:700}.bal{font-variant-numeric:tabular-nums;font-weight:700;color:var(--acc)}
+.meta{color:var(--mut);font-size:12px;margin:2px 0 8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+label{display:block;font-size:11px;color:var(--mut);margin-bottom:2px}.grid input,.grid select{width:100%;background:var(--inp)}
+.hid{display:none}.note{margin-top:8px;padding:7px 9px;background:var(--chip);border:1px solid var(--bd);border-radius:8px;font-size:13px;min-height:28px}
+.err{color:var(--warn);font-size:12px;margin-top:4px}details{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin:10px 0}
+textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus,input:focus,textarea:focus{outline:2px solid var(--sun);outline-offset:1px}
+.chip.on{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+#codet{width:100%;border-collapse:collapse}#codet td{padding:3px 6px}#codet b{font-family:Consolas,monospace;font-size:15px;letter-spacing:1px}
+#permt{width:100%;border-collapse:collapse}#permt th{font-size:12px;color:var(--mut);text-align:left;padding:4px}#permt td{padding:3px}#permt td input{width:100%}
+#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}#login.hid{display:none}
+#login .card{width:100%;max-width:360px;margin:0}#login input{width:100%;margin:4px 0 10px}
+</style></head><body>
+<div id="login" class="hid"><div class="card"><div class="name" style="margin-bottom:8px">Sign in</div>
+<div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="12"><button id="lgo" type="button">Sign in</button></div>
+<div id="lm2" class="err"></div></div></div>
+<header><h1>Outstanding invoices – feedback collector <span class="sm" id="rd"></span> <span class="sm" id="conn"></span></h1>
+<div class="bar"><label style="margin:0">I’m <select id="who"></select></label>
+<label style="margin:0"><input type="checkbox" id="pend"> pending only</label>
+<div class="prog"><i id="pb"></i></div><span id="pt" class="sm"></span>
+<span id="me" class="sm"></span> <button id="olog" class="alt" type="button">Sign out</button></div></header>
+<main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="perm">Permissions</span></div>
+<div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
+<div class="chips" id="chips"></div>
+<details id="own" class="hid"><summary><b>Owner tools</b></summary>
+<p class="sm">Report date <input type="date" id="rdi"> <button id="xl" type="button">Download Finance report (Excel)</button> <button id="exp" class="alt" type="button">CSV</button></p>
+<p class="sm"><b>Load a new week.</b> In Excel copy columns NO → Medical/Personnel Manager from the new report and paste here. Last week’s notes carry over automatically; rows not in the paste are removed.</p>
+<textarea id="ta" placeholder="NO&#9;Customer&#9;Payment term&#9;Balance&#9;Payroll manager&#9;Medical/Personnel manager"></textarea>
+<p><button id="ld" type="button">Load week</button> <span id="lm" class="sm"></span></p>
+<p class="sm"><b>Backups.</b> Choose your OneDrive backup folder once (Chrome or Edge). Backups are saved inside it in a folder named by the upload date, for example “outstanding 27-10-2026”. They run automatically around Load week; press Backup now any time. The database also keeps a daily snapshot for 30 days.</p>
+<p><button id="bkf" class="alt" type="button">Choose backup folder</button> <button id="bkn" type="button">Backup now</button> <span id="bkm" class="sm"></span></p>
+<p class="sm"><b>“Ready for review” email (optional).</b> Paste the Power Automate flow URL. Leave it empty to see only the banner.</p>
+<p><input id="whu" type="url" placeholder="https://…" style="width:70%"> <button id="whs" class="alt" type="button">Save</button> <span id="whm" class="sm"></span></p></details>
+<div id="list"><p class="sm">Loading…</p></div>
+<section id="permv" class="card hid" style="border-left-color:var(--acc)"><div class="name">Permissions</div>
+<p class="sm">Who can sign in. The supervisor name must match the manager name in the report. The delegate email has the same access as the supervisor; leave it empty if there is none. The owner always has access.</p>
+<table id="permt"><thead><tr><th>Supervisor</th><th>Email</th><th>Delegate Team Member</th><th></th></tr></thead><tbody></tbody></table>
+<p><button id="padd" class="alt" type="button">+ Add supervisor</button> <button id="us" type="button">Save permissions</button> <span id="um" class="sm"></span></p>
+<div class="name" style="margin-top:14px">Access codes</div>
+<p class="sm">Each person signs in with their email and a personal access code. Press “New code”, copy the code and send it to that person privately. It is shown only once; a new code replaces the old one. Save the table first when you add someone.</p>
+<table id="codet"><tbody></tbody></table></section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script>
+const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const D=(v,p='[date?]')=>{if(!v)return p;const [y,m,d]=String(v).split('-');return +d+' '+MO[m-1]+' '+y};
+const A=n=>n===''||n==null?'[amount?]':Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const PEND='We are following Up with Client for the Pending Invoice to get specific date of payment',WAIT='Waiting for the client’s response';
+const ST=[
+['Transfer done',1,1,0,r=>`Transfer done on ${D(r.date)} with amount (${A(r.amt)} EGP)`],
+['Cheque received',1,1,0,r=>`CHQ Received on ${D(r.date)} with amount (${A(r.amt)} EGP)`],
+['Transfer done – waiting to reflect',0,0,0,r=>`As per client feedback Transfer done${r.amt?` with amount (${A(r.amt)} EGP) `:' '}waiting to reflect on our account`],
+['Planned payment date',0,0,1,r=>`Planned to be paid on ${D(r.plan,'[planned date?]')}`],
+['Following up – no date yet',0,0,0,()=>PEND],
+['Waiting for client’s response',0,0,0,()=>WAIT],
+['Pending PO',0,0,0,r=>`Pending PO from ${r.customer} Side`],
+['Management decision',0,0,0,()=>'Management Decision.'],
+['Medical invoice',0,0,0,()=>'Invoice related to Medical services'],
+['Personnel invoice',0,0,0,()=>'Invoice related to Personnel services'],
+['Medical/Personnel pass-through',0,0,0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`],
+['VAT difference',0,0,0,r=>`Amount related to VAT, as ${r.customer} paid without VAT`],
+['Not payroll invoices',0,0,0,()=>'Not related to Payroll Invoices'],
+['Escalated to Mr. Sherif',0,0,0,()=>'Feedback with Mr. Sherif'],
+['Within payment term',0,0,0,r=>`Payment term ${r.term} days as per client’s history`]];
+const REM={plan:r=>'Planned to be paid on '+D(r.plan,'[planned date?]'),follow:()=>PEND,wait:()=>WAIT,mgmt:()=>'Management Decision.'};
+const REML={plan:'Planned to be paid on (date)',follow:'Following up – no date yet',wait:'Waiting for client’s response',mgmt:'Management decision'};
+function note(r){const i=ST.findIndex(s=>s[0]===r.status);if(i<0)return '';let t=ST[i][4](r);
+ if(i<3&&r.rem&&REM[r.rem])t+=', for the remaining '+REM[r.rem](r);
+ if(r.extra)t+=' | '+r.extra;
+ return t}
+const MS=[['Transfer done',1,r=>`Transfer done on ${D(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${D(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${D(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision.'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`]];
+function medNote(r){const s=MS.find(x=>x[0]===r.medStatus);if(!s&&!r.medAmt)return '';
+ return (s?s[2](r):'[feedback?]')+(r.medExtra?' | '+r.medExtra:'')}
+const allNote=r=>note(r)+(medNote(r)?' | '+medNote(r):'');
+function miss(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
+ if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.medAmt||r.medStatus){const q=MS.find(x=>x[0]===r.medStatus);if(!q)m.push('Medical/Personnel feedback');else if(q[1]&&!r.medDate)m.push('Medical/Personnel date')}return m.length?'Missing: '+m.join(', '):''}
+const done=r=>r.status&&!miss(r);
+
+let rows={},who='',meta={},ver=0,epoch='',drafts={},me=null,poll=null;
+const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SB_URL='https://kzlftjfuqgatzfipntqw.supabase.co',SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6bGZ0amZ1cWdhdHpmaXBudHF3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNzAzMjUsImV4cCI6MjEwODY0NjMyNX0.Pc2WNZ7roEyikBZWt3NNwnlJuilI8c6rW9t1rBmpQgs';
+const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+const fail=(m,s)=>Object.assign(new Error(m),{status:s});
+const normCode=c=>{const s=String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');return s.length===8?s.slice(0,4)+'-'+s.slice(4):s};
+async function rpc(fn,args){const {data,error}=await sb.rpc(fn,args||{});
+ if(error){const s=(error.code==='28000'||error.code==='PGRST301'||/JWT|not signed in/i.test(error.message))?401:(error.code==='42501'?403:400);if(s===401)showLogin();throw fail(error.message,s)}return data}
+async function api(method,path,body){
+ const u=new URL(path,'http://x'),p=u.pathname;
+ if(p==='/api/login'){const {error}=await sb.auth.signInWithPassword({email:String(body.email||'').trim().toLowerCase(),password:normCode(body.code)});if(error)throw fail('Wrong email or access code.',403);return {ok:true}}
+ if(p==='/api/logout'){await sb.auth.signOut();return {ok:true}}
+ const {data:{session}}=await sb.auth.getSession();if(!session){showLogin();throw fail('sign in required',401)}
+ if(p==='/api/me')return rpc('api_me');
+ if(p==='/api/sync')return rpc('api_sync',{p_since:+u.searchParams.get('since')||0,p_epoch:u.searchParams.get('epoch')||''});
+ const m=p.match(/^\/api\/row\/(c\d+)$/);if(m)return rpc('api_save_row',{p_id:m[1],p_data:body});
+ if(p==='/api/meta')return rpc('api_set_meta',{p_date:body.date||''});
+ if(p==='/api/users'&&method==='GET')return rpc('api_get_perm');
+ if(p==='/api/users')return rpc('api_save_perm',{p_rows:body.rows});
+ if(p==='/api/load')return rpc('api_load',{p_rows:body.rows});
+ if(p==='/api/codes'){const {data,error}=await sb.functions.invoke('set-code',{body:{email:body.email}});
+  if(error){let msg=error.message;try{msg=(await error.context.json()).error||msg}catch(e){}throw fail(msg,400)}return data}
+ throw fail('not found',404)}
+function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}>${s[0]}</option>`).join('');
+ const ro=Object.keys(REML).map(k=>`<option value="${k}"${r.rem===k?' selected':''}>${REML[k]}</option>`).join('');
+ const mo=MS.map(s=>`<option${r.medStatus===s[0]?' selected':''}>${s[0]}</option>`).join('');
+ return `<div class="top"><span class="name">${esc(r.customer)}</span><span class="bal">${(Number(r.balance)||0).toLocaleString('en-US',{maximumFractionDigits:0})} EGP</span></div>
+<div class="meta">Term: ${esc(r.term)} · ${esc(r.mgr)}${r.medMgr?' · Medical/Personnel: '+esc(r.medMgr):''}${r.lwNote?'<br>Last week: '+esc(r.lwNote):''}</div>
+<div class="grid"><div><label>Status</label><select data-k="status"><option value="">— choose —</option>${o}</select></div>
+<div data-f="date"><label>Transfer / cheque date</label><input type="date" data-k="date" value="${esc(r.date)}"></div>
+<div data-f="amt"><label>Amount received (EGP)</label><input type="number" min="0" step="0.01" data-k="amt" value="${esc(r.amt)}"></div>
+<div data-f="rem"><label>Remainder (if partly paid)</label><select data-k="rem"><option value="">—</option>${ro}</select></div>
+<div data-f="plan"><label>Planned payment date</label><input type="date" data-k="plan" value="${esc(r.plan)}"></div>
+<div><label>Reason / extra note</label><input data-k="extra" value="${esc(r.extra)}"></div>
+</div>
+<div class="sm" style="margin:10px 0 4px"><b>Medical / Personnel invoices</b> – fill only if this balance includes any</div>
+<div class="grid"><div><label>Medical/Personnel portion (EGP)</label><input type="number" min="0" step="0.01" data-k="medAmt" value="${esc(r.medAmt)}"></div>
+<div><label>Medical/Personnel feedback</label><select data-k="medStatus"><option value="">— choose —</option>${mo}</select></div>
+<div data-f="medDate"><label>Date</label><input type="date" data-k="medDate" value="${esc(r.medDate)}"></div>
+<div><label>Extra note (medical/personnel)</label><input data-k="medExtra" value="${esc(r.medExtra)}"></div></div>
+<div class="note" data-n="p"></div><div class="note" data-n="m"></div><div class="err"></div>
+<div class="saverow"><button type="button" data-save="1">Save</button><span class="sv sm"></span></div>`}
+const KEYS=['status','date','amt','rem','plan','extra','medAmt','medStatus','medDate','medExtra'];
+function vals(el,base){const r={...base};el.querySelectorAll('[data-k]').forEach(i=>{const k=i.dataset.k;r[k]=i.type==='number'?(i.value===''?'':+i.value):i.value});return r}
+function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
+ const show={date:s&&s[1],amt:i>=0&&i<3,rem:i>=0&&i<3,plan:(s&&s[3])||(i>=0&&i<3&&r.rem==='plan')};
+ el.querySelectorAll('[data-f]').forEach(d=>d.classList.toggle('hid',!show[d.dataset.f]));
+ el.querySelector('[data-n="p"]').textContent=note(r)||'The note for Finance appears here.';const mn=medNote(r),me=el.querySelector('[data-n="m"]');me.textContent=mn;me.classList.toggle('hid',!mn);const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
+ el.classList.toggle('done',!!done(r))}
+function visible(r){return(!who||r.mgr===who||r.medMgr===who)&&(!$('pend').checked||!done(r))}
+function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML='';
+ ids.forEach(id=>{const r=rows[id];if(!visible(r))return;const v=drafts[id]||r,el=document.createElement('section');el.className='card';el.id=id;el.innerHTML=cardHtml(v);paint(el,v);if(drafts[id])markDirty(el,true);L.appendChild(el)});
+ if(!L.children.length)L.innerHTML='<p class="sm">Nothing to show.</p>';stats()}
+function stats(){const all=Object.values(rows),mine=all.filter(r=>!who||r.mgr===who||r.medMgr===who),d=mine.filter(done).length;
+ $('pb').style.width=(mine.length?100*d/mine.length:0)+'%';$('pt').textContent=d+' of '+mine.length+' done';
+ const ms={};all.forEach(r=>{const m=r.mgr||'—';(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++});
+ $('chips').innerHTML=Object.entries(ms).sort((a,b)=>(a[1][1]-a[1][0])-(b[1][1]-b[1][0])).reverse().map(([m,v])=>`<span class="chip" data-m="${esc(m)}">${esc(m)} ${v[0]}/${v[1]}</span>`).join('');
+ const sel=$('who'),mg=[...new Set(all.map(r=>r.mgr).concat(all.map(r=>r.medMgr)).filter(Boolean))].sort();
+ sel.innerHTML='<option value="">everyone</option>'+mg.map(m=>`<option${m===who?' selected':''}>${esc(m)}</option>`).join('')}
+const focusedCard=()=>document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.card');
+
+function markDirty(el,on){el.classList.toggle('dirty',on);if(on)el.querySelector('.sv').textContent='Unsaved changes – press Save'}
+$('list').addEventListener('input',e=>{const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true)});
+$('list').addEventListener('click',async e=>{const b=e.target.closest('[data-save]');if(!b)return;const el=b.closest('.card'),id=el.id,r=drafts[id]||rows[id];
+ const d={};KEYS.forEach(k=>d[k]=r[k]);d.done=!!done(r);b.disabled=true;
+ try{const s=await api('PUT','/api/row/'+id,d);rows[id]=s;delete drafts[id];markDirty(el,false);
+  el.querySelector('.sv').textContent='Saved '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});stats()}
+ catch(x){el.querySelector('.sv').textContent='Not saved – '+x.message+'. Check your connection and try again.'}
+ b.disabled=false});
+window.addEventListener('beforeunload',e=>{if(Object.keys(drafts).length){e.preventDefault();e.returnValue=''}});
+function setWho(m){who=m;try{localStorage.setItem('who',who)}catch(x){}renderAll()}
+$('who').onchange=e=>setWho(e.target.value);$('pend').onchange=renderAll;
+$('chips').onclick=e=>{const m=e.target.dataset.m;if(m)setWho(m)};
+
+async function sync(full){
+ let d;try{d=await api('GET','/api/sync?since='+(full?0:ver)+'&epoch='+encodeURIComponent(epoch));$('conn').textContent=''}catch(x){if(x.status!==401)$('conn').textContent='· offline, retrying…';return}
+ ver=d.ver;epoch=d.epoch;meta=d.meta||{};$('ready').classList.toggle('hid',!d.ready);
+ $('rd').textContent=meta.date?'· report of '+D(meta.date):'';if(document.activeElement!==$('rdi'))$('rdi').value=meta.date||'';
+ let re=false;
+ if(d.full){rows={};d.rows.forEach(r=>rows[r.id]=r);Object.keys(drafts).forEach(id=>{if(!rows[id]||rows[id].customer!==drafts[id].customer)delete drafts[id]});re=true}
+ else{d.rows.forEach(r=>{const o=rows[r.id];if(o&&o._v===r._v)return;rows[r.id]=r;
+   const el=document.getElementById(r.id);
+   if(!el){re=true;return}
+   if(drafts[r.id]||el.contains(document.activeElement))return;
+   el.innerHTML=cardHtml(r);paint(el,r)});
+  const ids=new Set(d.ids);Object.keys(rows).forEach(id=>{if(!ids.has(id)){delete rows[id];re=true}})}
+ if((re&&!focusedCard())||!$('list').children.length||$('list').querySelector('p'))renderAll();else stats()}
+
+function showLogin(msg){me=null;rows={};drafts={};$('list').innerHTML='';$('login').classList.remove('hid');$('lm2').textContent=msg||''}
+$('lgo').onclick=async()=>{$('lm2').textContent='';
+ try{await api('POST','/api/login',{email:$('le').value.trim(),code:$('lc').value.trim()});$('lc').value='';await boot()}catch(x){$('lm2').textContent=x.message}};
+$('le').onkeydown=e=>{if(e.key==='Enter')$('lc').focus()};$('lc').onkeydown=e=>{if(e.key==='Enter')$('lgo').click()};
+$('olog').onclick=async()=>{try{await api('POST','/api/logout')}catch(x){}showLogin()};
+function permRow(r){const tr=document.createElement('tr');
+ tr.innerHTML=`<td><input data-p="supervisor" value="${esc(r.supervisor)}"></td><td><input data-p="email" type="email" value="${esc(r.email)}"></td><td><input data-p="delegate" type="email" value="${esc(r.delegate)}"></td><td><button class="alt" type="button" data-del="1" aria-label="Remove row">×</button></td>`;
+ $('permt').tBodies[0].appendChild(tr)}
+function codeRows(list){$('codet').tBodies[0].innerHTML=list.map(x=>`<tr><td>${esc(x.email)}</td><td class="sm">${x.hasCode?'code set':'no code yet'}</td><td><button class="alt" type="button" data-code="${esc(x.email)}">New code</button></td><td><b data-shown="${esc(x.email)}"></b></td></tr>`).join('')}
+async function loadPerm(){const r=await api('GET','/api/users');$('permt').tBodies[0].innerHTML='';(r.rows.length?r.rows:[{}]).forEach(permRow);codeRows(r.codes||[])}
+$('codet').onclick=async e=>{const em=e.target.dataset.code;if(!em)return;
+ try{const r=await api('POST','/api/codes',{email:em});const b=[...document.querySelectorAll('[data-shown]')].find(x=>x.dataset.shown===em);b.textContent=r.code;e.target.closest('tr').children[1].textContent='code set';
+  const sel=getSelection(),rg=document.createRange();rg.selectNodeContents(b);sel.removeAllRanges();sel.addRange(rg)}catch(x){alert(x.message)}};
+$('padd').onclick=()=>permRow({});
+$('permt').onclick=e=>{if(e.target.dataset.del)e.target.closest('tr').remove()};
+$('us').onclick=async()=>{$('um').textContent='';
+ const rows=[...$('permt').tBodies[0].rows].map(tr=>({supervisor:tr.querySelector('[data-p=supervisor]').value,email:tr.querySelector('[data-p=email]').value,delegate:tr.querySelector('[data-p=delegate]').value}));
+ try{await api('PUT','/api/users',{rows});await loadPerm();$('um').textContent='Saved.'}catch(x){$('um').textContent='Failed: '+x.message}};
+function showTab(t){const p=t==='perm';if(p)$('ready').classList.add('hid');['chips','list'].forEach(i=>$(i).classList.toggle('hid',p));$('permv').classList.toggle('hid',!p);
+ $('own').classList.toggle('hid',p||!(me&&me.owner));document.querySelectorAll('#tabs .chip').forEach(c=>c.classList.toggle('on',c.dataset.t===t));if(p)loadPerm().catch(()=>{})}
+$('tabs').onclick=e=>{if(e.target.dataset.t)showTab(e.target.dataset.t)};
+async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
+ $('login').classList.add('hid');$('me').textContent=me.email;$('tabs').classList.toggle('hid',!me.owner);showTab('fb');
+ if(me.owner){$('whu').placeholder=me.webhookSet?'(saved – paste a new URL to replace it)':'https://…';rpc('api_set_settings',{p_webhook:null,p_app_url:location.origin+location.pathname}).catch(()=>{})}
+ await sync(true);if(!poll)poll=setInterval(()=>{if(me)sync(false)},5000)}
+
+function saveFile(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+$('exp').onclick=()=>{const q=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v)&&isNaN(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+ const H=['NO','Customer','Balance','Payroll manager','Status','Notes Invoices not settled','Medical/Personnel manager','Medical/Personnel portion','Medical/Personnel feedback','Medical/Personnel notes','Planned date'];
+ const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,r.balance,r.mgr,r.status||'',note(r),r.medMgr||'',r.medAmt??'',r.medStatus||'',medNote(r),r.plan||''].map(q).join(','));
+ saveFile('Notes_Invoices_not_settled_'+(meta.date||'')+'.csv','﻿'+[H.map(q).join(',')].concat(L).join('\r\n'),'text/csv;charset=utf-8')};
+$('xl').onclick=async()=>{if(!window.ExcelJS){alert('Excel export needs internet access to load the ExcelJS library. Use the CSV button instead.');return}
+try{
+const rs=Object.keys(rows).sort().map(id=>rows[id]),wb=new ExcelJS.Workbook(),H=5;
+const ws=wb.addWorksheet('Outstanding',{views:[{state:'frozen',ySplit:H,showGridLines:false}],pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:'5:5'}});
+const F=o=>({name:'Arial',size:10,...o}),th={style:'thin',color:{argb:'FFBFC7D5'}},BD={top:th,left:th,bottom:th,right:th},FL=z=>({type:'pattern',pattern:'solid',fgColor:{argb:z}});
+const cols=[['NO',6],['Customer',38],['Payment term',12],['Balance (EGP)',16],['Payroll manager',18],['Status',26],['Notes Invoices not settled',60],['Medical / Personnel manager',20],['Medical / Personnel portion (EGP)',17],['Medical / Personnel notes',50],['Planned date',14]],N=cols.length;
+cols.forEach((x,i)=>ws.getColumn(i+1).width=x[1]);
+const tot=rs.reduce((s,r)=>s+(+r.balance||0),0),dn=rs.filter(done).length;
+ws.mergeCells(1,1,1,N);let c=ws.getCell(1,1);c.value='Outstanding invoices – notes for Finance';c.font=F({size:16,bold:true,color:{argb:'FFFFFFFF'}});c.fill=FL('FF1F3864');c.alignment={vertical:'middle',indent:1};ws.getRow(1).height=30;
+ws.mergeCells(2,1,2,N);c=ws.getCell(2,1);c.value='Report date: '+D(meta.date,'—')+'   |   Customers: '+rs.length+'   |   Total outstanding: '+Math.round(tot).toLocaleString('en-US')+' EGP   |   Feedback complete: '+dn+' of '+rs.length;c.font=F({bold:true,color:{argb:'FF1F3864'}});c.fill=FL('FFDDEBF7');c.alignment={vertical:'middle',indent:1};ws.getRow(2).height=20;
+ws.mergeCells(3,1,3,N);c=ws.getCell(3,1);c.value='Status colours:  green = payment received  ·  blue = date committed  ·  amber = no commitment yet  ·  grey = special case  ·  red = no feedback yet';c.font=F({italic:true,size:9,color:{argb:'FF667085'}});c.alignment={indent:1};
+cols.forEach((x,i)=>{c=ws.getCell(H,i+1);c.value=x[0];c.font=F({bold:true,color:{argb:'FFFFFFFF'}});c.fill=FL('FF1F3864');c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.border=BD});ws.getRow(H).height=34;
+const col=st=>{const i=ST.findIndex(s=>s[0]===st);return i<0?'FFFCE4D6':i<3?'FFE2EFDA':(st==='Planned payment date'||st==='Within payment term')?'FFDDEBF7':i<7?'FFFFF2CC':'FFEDEDED'};
+rs.forEach((r,k)=>{const n=H+1+k,row=ws.getRow(n),pn=note(r),mn=medNote(r),pd=r.plan?String(r.plan).split('-').map(Number):null;
+ const v=[r.no,r.customer,(r.term===''||isNaN(+r.term))?r.term:+r.term,+r.balance||0,r.mgr||'',r.status||'No feedback yet',pn,r.medMgr||'',r.medAmt===''||r.medAmt==null?'':+r.medAmt,mn,pd?new Date(Date.UTC(pd[0],pd[1]-1,pd[2])):''];
+ v.forEach((x,i)=>{const z=row.getCell(i+1);z.value=x;z.font=F();z.border=BD;z.alignment={vertical:'top',wrapText:i===1||i===6||i===9,...((i===0||i===2||i===10)?{horizontal:'center'}:{})};if(k%2)z.fill=FL('FFF7F9FC')});
+ row.getCell(4).numFmt='#,##0';row.getCell(9).numFmt='#,##0';row.getCell(11).numFmt='d mmm yyyy';
+ const sc=row.getCell(6);sc.fill=FL(col(r.status));sc.font=F({bold:true});
+ row.height=Math.max(18,13*Math.max(Math.ceil(pn.length/62),Math.ceil(mn.length/52),Math.ceil((r.customer||'').length/40),1)+5)});
+const e=H+1+rs.length;ws.getCell(e,2).value='Total outstanding';ws.getCell(e,4).value={formula:`SUM(D${H+1}:D${e-1})`,result:tot};ws.getCell(e,9).value={formula:`SUM(I${H+1}:I${e-1})`};
+for(let i=1;i<=N;i++){c=ws.getCell(e,i);c.font=F({bold:true});c.fill=FL('FFDDEBF7');c.border={top:{style:'medium',color:{argb:'FF1F3864'}},bottom:{style:'medium',color:{argb:'FF1F3864'}}}}
+ws.getCell(e,4).numFmt='#,##0';ws.getCell(e,9).numFmt='#,##0';
+c=ws.getCell(e+2,2);c.value='Prepared from the invoice feedback collector';c.font=F({italic:true,size:9,color:{argb:'FF667085'}});
+ws.autoFilter={from:{row:H,column:1},to:{row:H+rs.length,column:N}};
+saveFile('Outstanding_notes_for_Finance_'+(meta.date||'')+'.xlsx',await wb.xlsx.writeBuffer(),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+}catch(x){alert('Excel export failed: '+(x.message||x))}};
+
+$('rdi').onchange=async e=>{try{await api('PUT','/api/meta',{date:e.target.value})}catch(x){$('rdi').value=meta.date||'';alert('Report date not saved ('+x.message+')')}};
+$('ld').onclick=async()=>{const T=$('ta').value.trim().split(/\r?\n/).map(l=>l.split('\t')).filter(c=>/^\d+$/.test((c[0]||'').trim())&&c[1]);
+ if(!T.length){$('lm').textContent='Paste at least one row.';return}
+ const bal=s=>{s=String(s||0).trim();const v=parseFloat(s.replace(/[^\d.]/g,''));return isNaN(v)?NaN:(/^\(.*\)$/.test(s)?-v:v)};
+ const bad=T.find(c=>isNaN(bal(c[3])));if(bad){$('lm').textContent='Cannot read the balance for '+bad[1].trim()+' – fix it and paste again.';return}
+ if(!confirm('Replace the current list with '+T.length+' customers?'))return;$('lm').textContent='Loading…';
+ try{let bh=null;try{bh=await dirHandle(true)}catch(x){}
+  if(bh){try{await backupNow()}catch(x){}}
+  await sync(true);const prev={};let seen={};const ky=s=>{seen[s]=(seen[s]||0)+1;return s+'#'+seen[s]};
+  Object.keys(rows).sort().forEach(id=>{prev[ky(rows[id].customer)]=rows[id]});seen={};
+  const out=T.map(c=>{const name=c[1].trim(),p=prev[ky(name)];return{no:+c[0],customer:name,term:(c[2]||'').trim(),balance:bal(c[3]),mgr:(c[4]||'').trim(),medMgr:(c[5]||'').trim(),lwNote:p?(p.status?allNote(p):p.lwNote||''):'',lwProm:p?(p.plan||p.lwProm||''):''}});
+  const res=await api('POST','/api/load',{rows:out});await sync(true);
+  let bk='';if(bh){try{const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';await backupNow('',['NO','Customer','Payment term','Balance','Payroll manager','Medical/Personnel manager'].map(q).join(',')+'\r\n'+out.map(o=>[o.no,o.customer,o.term,o.balance,o.mgr,o.medMgr].map(q).join(',')).join('\r\n'));bk=' Backup saved.'}catch(x){bk=' Backup failed: '+x.message}}
+  $('lm').textContent='Done – '+out.length+' customers loaded.'+bk+(res.unmatched&&res.unmatched.length?' Not in the Permissions tab (nobody can fill these): '+res.unmatched.join(', ')+'.':'');$('ta').value=''}catch(x){$('lm').textContent='Failed: '+x.message}};
+
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('bk',1);r.onupgradeneeded=()=>r.result.createObjectStore('h');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const idbGet=async k=>{const d=await idb();return new Promise(res=>{const q=d.transaction('h').objectStore('h').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)})};
+const idbSet=async(k,v)=>{const d=await idb();return new Promise((res,rej)=>{const t=d.transaction('h','readwrite');t.objectStore('h').put(v,k);t.oncomplete=res;t.onerror=()=>rej(t.error)})};
+const pad=n=>String(n).padStart(2,'0');
+const folderName=iso=>{if(!iso)return 'outstanding (no sheet yet)';const [y,m,d]=iso.split('-');return 'outstanding '+d+'-'+m+'-'+y};
+async function dirHandle(ask){const h=await idbGet('dir');if(!h)return null;let p=await h.queryPermission({mode:'readwrite'});if(p!=='granted'&&ask)p=await h.requestPermission({mode:'readwrite'});return p==='granted'?h:null}
+async function backupNow(reason,sheetCsv){
+ const data=await rpc('api_export'),n=new Date(),stamp=''+n.getFullYear()+pad(n.getMonth()+1)+pad(n.getDate())+'_'+pad(n.getHours())+pad(n.getMinutes())+pad(n.getSeconds()),text=JSON.stringify(data,null,1);
+ const h=await dirHandle(true);
+ if(!h){saveFile('outstanding_backup_'+stamp+'.json',text,'application/json');return 'downloaded (no backup folder chosen yet)'}
+ const sub=await h.getDirectoryHandle(folderName(data.sheetDate),{create:true});
+ const w=async(name,txt)=>{const f=await sub.getFileHandle(name,{create:true}),s=await f.createWritable();await s.write(txt);await s.close()};
+ await w('data_'+stamp+'.json',text);if(sheetCsv)await w('sheet_'+stamp+'.csv','﻿'+sheetCsv);
+ return 'saved in “'+folderName(data.sheetDate)+'”'}
+$('bkf').onclick=async()=>{if(!window.showDirectoryPicker){$('bkm').textContent='This browser cannot save to a folder. Use Chrome or Edge.';return}
+ try{const h=await showDirectoryPicker({mode:'readwrite'});await idbSet('dir',h);$('bkm').textContent='Folder: '+h.name}catch(x){}};
+$('bkn').onclick=async()=>{$('bkm').textContent='…';try{$('bkm').textContent='Backup '+await backupNow()}catch(x){$('bkm').textContent='Failed: '+x.message}};
+$('whs').onclick=async()=>{const v=$('whu').value.trim();$('whm').textContent='';try{await rpc('api_set_settings',{p_webhook:v,p_app_url:null});$('whm').textContent=v?'Saved.':'Cleared.';$('whu').value='';$('whu').placeholder=v?'(saved – paste a new URL to replace it)':'https://…'}catch(x){$('whm').textContent=x.message}};
+(async()=>{try{const h=await idbGet('dir');if(h)$('bkm').textContent='Folder: '+h.name}catch(x){}})();
+
+(async()=>{try{who=localStorage.getItem('who')||''}catch(x){}
+ await boot()})();
+</script></body></html>
