@@ -23,17 +23,23 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 .chip.on{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
 #codet{width:100%;border-collapse:collapse}#codet td{padding:3px 6px}#codet b{font-family:Consolas,monospace;font-size:15px;letter-spacing:1px}
 #permt{width:100%;border-collapse:collapse}#permt th{font-size:12px;color:var(--mut);text-align:left;padding:4px}#permt td{padding:3px}#permt td input{width:100%}
+#chg{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:21}#chg.hid{display:none}
 #login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}#login.hid{display:none}
 #login .card{width:100%;max-width:360px;margin:0}#login input{width:100%;margin:4px 0 10px}
 </style></head><body>
 <div id="login" class="hid"><div class="card"><div class="name" style="margin-bottom:8px">Sign in</div>
 <div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="12"><button id="lgo" type="button">Sign in</button></div>
 <div id="lm2" class="err"></div></div></div>
+<div id="chg" class="hid"><div class="card" style="width:100%;max-width:380px;margin:0"><div class="name" style="margin-bottom:6px">Choose your own access code</div>
+<p class="sm" id="cht">The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.</p>
+<label>New access code</label><input id="cn1" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 8px"><label>Repeat the new code</label><input id="cn2" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 10px">
+<button id="chsave" type="button">Save code</button> <button id="chcancel" class="alt hid" type="button">Cancel</button> <button id="chout" class="alt" type="button">Sign out</button>
+<div id="chm" class="err"></div></div></div>
 <header><h1>Outstanding invoices – feedback collector <span class="sm" id="rd"></span> <span class="sm" id="conn"></span></h1>
 <div class="bar"><label style="margin:0">I’m <select id="who"></select></label>
 <label style="margin:0"><input type="checkbox" id="pend"> pending only</label>
 <div class="prog"><i id="pb"></i></div><span id="pt" class="sm"></span>
-<span id="me" class="sm"></span> <button id="olog" class="alt" type="button">Sign out</button></div></header>
+<span id="me" class="sm"></span> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
 <main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="perm">Permissions</span></div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="chips" id="chips"></div>
@@ -52,7 +58,7 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 <table id="permt"><thead><tr><th>Supervisor</th><th>Email</th><th>Delegate Team Member</th><th></th></tr></thead><tbody></tbody></table>
 <p><button id="padd" class="alt" type="button">+ Add supervisor</button> <button id="us" type="button">Save permissions</button> <span id="um" class="sm"></span></p>
 <div class="name" style="margin-top:14px">Access codes</div>
-<p class="sm">Each person signs in with their email and a personal access code. Press “New code”, copy the code and send it to that person privately. It is shown only once; a new code replaces the old one. Save the table first when you add someone.</p>
+<p class="sm">Each person signs in with their email and a personal access code. Press “New code” for a random code, or type your own (at least 8 letters or digits, any case) and press Set. Send the code to that person privately. A random code is shown only once; a new code replaces the old one and signs that person out. Save the table first when you add someone.</p>
 <table id="codet"><tbody></tbody></table></section></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
@@ -98,10 +104,11 @@ const sb=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefr
 const fail=(m,s)=>Object.assign(new Error(m),{status:s});
 const normCode=c=>{const s=String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');return s.length===8?s.slice(0,4)+'-'+s.slice(4):s};
 async function rpc(fn,args){const {data,error}=await sb.rpc(fn,args||{});
- if(error){const s=(error.code==='28000'||error.code==='PGRST301'||/JWT|not signed in/i.test(error.message))?401:(error.code==='42501'?403:400);if(s===401)showLogin();throw fail(error.message,s)}return data}
+ if(error){if(error.code==='28001'){showChange(true);throw fail('Choose your own access code first.',409)}
+  const s=(error.code==='28000'||error.code==='PGRST301'||/JWT|not signed in/i.test(error.message))?401:(error.code==='42501'?403:400);if(s===401)showLogin();throw fail(error.message,s)}return data}
 async function api(method,path,body){
  const u=new URL(path,'http://x'),p=u.pathname;
- if(p==='/api/login'){const {error}=await sb.auth.signInWithPassword({email:String(body.email||'').trim().toLowerCase(),password:normCode(body.code)});if(error)throw fail('Wrong email or access code.',403);return {ok:true}}
+ if(p==='/api/login'){const {error}=await sb.auth.signInWithPassword({email:String(body.email||'').trim().toLowerCase(),password:normCode(body.code)});if(error){if(!error.status||/fetch|network/i.test(error.message))throw fail('Cannot reach the server. Check your internet connection, or ask IT to allow *.supabase.co.',0);throw fail('Wrong email or access code.',403)}return {ok:true}}
  if(p==='/api/logout'){await sb.auth.signOut();return {ok:true}}
  const {data:{session}}=await sb.auth.getSession();if(!session){showLogin();throw fail('sign in required',401)}
  if(p==='/api/me')return rpc('api_me');
@@ -111,7 +118,7 @@ async function api(method,path,body){
  if(p==='/api/users'&&method==='GET')return rpc('api_get_perm');
  if(p==='/api/users')return rpc('api_save_perm',{p_rows:body.rows});
  if(p==='/api/load')return rpc('api_load',{p_rows:body.rows});
- if(p==='/api/codes'){const {data,error}=await sb.functions.invoke('set-code',{body:{email:body.email}});
+ if(p==='/api/codes'){const {data,error}=await sb.functions.invoke('set-code',{body:{email:body.email,code:body.code||''}});
   if(error){let msg=error.message;try{msg=(await error.context.json()).error||msg}catch(e){}throw fail(msg,400)}return data}
  throw fail('not found',404)}
 function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}>${s[0]}</option>`).join('');
@@ -179,7 +186,7 @@ async function sync(full){
   const ids=new Set(d.ids);Object.keys(rows).forEach(id=>{if(!ids.has(id)){delete rows[id];re=true}})}
  if((re&&!focusedCard())||!$('list').children.length||$('list').querySelector('p'))renderAll();else stats()}
 
-function showLogin(msg){me=null;rows={};drafts={};$('list').innerHTML='';$('login').classList.remove('hid');$('lm2').textContent=msg||''}
+function showLogin(msg){me=null;rows={};drafts={};$('chg').classList.add('hid');$('list').innerHTML='';$('login').classList.remove('hid');$('lm2').textContent=msg||''}
 $('lgo').onclick=async()=>{$('lm2').textContent='';
  try{await api('POST','/api/login',{email:$('le').value.trim(),code:$('lc').value.trim()});$('lc').value='';await boot()}catch(x){$('lm2').textContent=x.message}};
 $('le').onkeydown=e=>{if(e.key==='Enter')$('lc').focus()};$('lc').onkeydown=e=>{if(e.key==='Enter')$('lgo').click()};
@@ -187,10 +194,12 @@ $('olog').onclick=async()=>{try{await api('POST','/api/logout')}catch(x){}showLo
 function permRow(r){const tr=document.createElement('tr');
  tr.innerHTML=`<td><input data-p="supervisor" value="${esc(r.supervisor)}"></td><td><input data-p="email" type="email" value="${esc(r.email)}"></td><td><input data-p="delegate" type="email" value="${esc(r.delegate)}"></td><td><button class="alt" type="button" data-del="1" aria-label="Remove row">×</button></td>`;
  $('permt').tBodies[0].appendChild(tr)}
-function codeRows(list){$('codet').tBodies[0].innerHTML=list.map(x=>`<tr><td>${esc(x.email)}</td><td class="sm">${x.hasCode?'code set':'no code yet'}</td><td><button class="alt" type="button" data-code="${esc(x.email)}">New code</button></td><td><b data-shown="${esc(x.email)}"></b></td></tr>`).join('')}
+function codeRows(list){$('codet').tBodies[0].innerHTML=list.map(x=>`<tr><td>${esc(x.email)}</td><td class="sm">${x.hasCode?'code set':'no code yet'}</td><td><button class="alt" type="button" data-code="${esc(x.email)}">New code</button></td><td><input data-ci="${esc(x.email)}" placeholder="or type your own code" size="18" autocomplete="off"> <button class="alt" type="button" data-set="${esc(x.email)}">Set</button> <b data-shown="${esc(x.email)}"></b></td></tr>`).join('')}
 async function loadPerm(){const r=await api('GET','/api/users');$('permt').tBodies[0].innerHTML='';(r.rows.length?r.rows:[{}]).forEach(permRow);codeRows(r.codes||[])}
-$('codet').onclick=async e=>{const em=e.target.dataset.code;if(!em)return;
- try{const r=await api('POST','/api/codes',{email:em});const b=[...document.querySelectorAll('[data-shown]')].find(x=>x.dataset.shown===em);b.textContent=r.code;e.target.closest('tr').children[1].textContent='code set';
+$('codet').onclick=async e=>{const em=e.target.dataset.code||e.target.dataset.set;if(!em)return;
+ const mine=e.target.dataset.set?[...document.querySelectorAll('[data-ci]')].find(x=>x.dataset.ci===em).value.trim():'';
+ if(e.target.dataset.set&&!mine){alert('Type the code you want first (at least 8 letters or digits).');return}
+ try{const r=await api('POST','/api/codes',{email:em,code:mine});const b=[...document.querySelectorAll('[data-shown]')].find(x=>x.dataset.shown===em);b.textContent=r.code;e.target.closest('tr').children[1].textContent='code set';[...document.querySelectorAll('[data-ci]')].find(x=>x.dataset.ci===em).value='';
   const sel=getSelection(),rg=document.createRange();rg.selectNodeContents(b);sel.removeAllRanges();sel.addRange(rg)}catch(x){alert(x.message)}};
 $('padd').onclick=()=>permRow({});
 $('permt').onclick=e=>{if(e.target.dataset.del)e.target.closest('tr').remove()};
@@ -200,7 +209,19 @@ $('us').onclick=async()=>{$('um').textContent='';
 function showTab(t){const p=t==='perm';if(p)$('ready').classList.add('hid');['chips','list'].forEach(i=>$(i).classList.toggle('hid',p));$('permv').classList.toggle('hid',!p);
  $('own').classList.toggle('hid',p||!(me&&me.owner));document.querySelectorAll('#tabs .chip').forEach(c=>c.classList.toggle('on',c.dataset.t===t));if(p)loadPerm().catch(()=>{})}
 $('tabs').onclick=e=>{if(e.target.dataset.t)showTab(e.target.dataset.t)};
+function showChange(forced){$('login').classList.add('hid');$('chg').classList.remove('hid');$('chcancel').classList.toggle('hid',!!forced);$('chm').textContent='';
+ $('cht').textContent=forced?'The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.':'Choose a new access code (at least 8 letters or digits).'}
+$('chb').onclick=()=>showChange(false);
+$('chcancel').onclick=()=>{$('chg').classList.add('hid');$('cn1').value=$('cn2').value=''};
+$('chout').onclick=async()=>{try{await api('POST','/api/logout')}catch(x){}$('chg').classList.add('hid');$('cn1').value=$('cn2').value='';showLogin()};
+$('chsave').onclick=async()=>{const a=$('cn1').value,b=$('cn2').value;$('chm').textContent='';
+ if(normCode(a)!==normCode(b)){$('chm').textContent='The two codes do not match.';return}
+ if(normCode(a).replace('-','').length<8){$('chm').textContent='The code must have at least 8 letters or digits.';return}
+ try{const {error}=await sb.functions.invoke('change-code',{body:{code:a}});
+  if(error){let msg=error.message;try{msg=(await error.context.json()).error||msg}catch(e){}throw new Error(msg)}
+  await sb.auth.refreshSession();$('chg').classList.add('hid');$('cn1').value=$('cn2').value='';await boot()}catch(x){$('chm').textContent=x.message}};
 async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
+ if(me.mustChange){showChange(true);return}
  $('login').classList.add('hid');$('me').textContent=me.email;$('tabs').classList.toggle('hid',!me.owner);showTab('fb');
  if(me.owner){$('whu').placeholder=me.webhookSet?'(saved – paste a new URL to replace it)':'https://…';rpc('api_set_settings',{p_webhook:null,p_app_url:location.origin+location.pathname}).catch(()=>{})}
  await sync(true);if(!poll)poll=setInterval(()=>{if(me)sync(false)},5000)}
