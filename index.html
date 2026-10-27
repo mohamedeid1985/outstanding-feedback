@@ -28,11 +28,11 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 #login .card{width:100%;max-width:360px;margin:0}#login input{width:100%;margin:4px 0 10px}
 </style></head><body>
 <div id="login" class="hid"><div class="card"><div class="name" style="margin-bottom:8px">Sign in</div>
-<div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="12"><button id="lgo" type="button">Sign in</button></div>
+<div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="40"><label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input id="lshow" type="checkbox" style="width:auto;margin:0"> Show code</label><button id="lgo" type="button">Sign in</button></div>
 <div id="lm2" class="err"></div></div></div>
 <div id="chg" class="hid"><div class="card" style="width:100%;max-width:380px;margin:0"><div class="name" style="margin-bottom:6px">Choose your own access code</div>
 <p class="sm" id="cht">The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.</p>
-<label>New access code</label><input id="cn1" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 8px"><label>Repeat the new code</label><input id="cn2" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 10px">
+<label>New access code</label><input id="cn1" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 8px"><label>Repeat the new code</label><input id="cn2" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 8px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input id="cshow" type="checkbox" style="width:auto;margin:0"> Show code</label>
 <button id="chsave" type="button">Save code</button> <button id="chcancel" class="alt hid" type="button">Cancel</button> <button id="chout" class="alt" type="button">Sign out</button>
 <div id="chm" class="err"></div></div></div>
 <header><h1>Outstanding invoices – feedback collector <span class="sm" id="rd"></span> <span class="sm" id="conn"></span></h1>
@@ -211,8 +211,10 @@ function showTab(t){const p=t==='perm';if(p)$('ready').classList.add('hid');['ch
 $('tabs').onclick=e=>{if(e.target.dataset.t)showTab(e.target.dataset.t)};
 function showChange(forced){$('login').classList.add('hid');$('chg').classList.remove('hid');$('chcancel').classList.toggle('hid',!!forced);$('chm').textContent='';
  $('cht').textContent=forced?'The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.':'Choose a new access code (at least 8 letters or digits).'}
+$('lshow').onchange=e=>{$('lc').type=e.target.checked?'text':'password'};
+$('cshow').onchange=e=>{$('cn1').type=$('cn2').type=e.target.checked?'text':'password'};
 $('chb').onclick=()=>showChange(false);
-$('chcancel').onclick=()=>{$('chg').classList.add('hid');$('cn1').value=$('cn2').value=''};
+$('chcancel').onclick=()=>{$('chg').classList.add('hid');$('cn1').value=$('cn2').value='';$('cshow').checked=false;$('cn1').type=$('cn2').type='password'};
 $('chout').onclick=async()=>{try{await api('POST','/api/logout')}catch(x){}$('chg').classList.add('hid');$('cn1').value=$('cn2').value='';showLogin()};
 $('chsave').onclick=async()=>{const a=$('cn1').value,b=$('cn2').value;$('chm').textContent='';
  if(normCode(a)!==normCode(b)){$('chm').textContent='The two codes do not match.';return}
