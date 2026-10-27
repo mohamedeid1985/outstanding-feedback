@@ -29,7 +29,7 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 </style></head><body>
 <div id="login" class="hid"><div class="card"><div class="name" style="margin-bottom:8px">Sign in</div>
 <div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="40"><label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input id="lshow" type="checkbox" style="width:auto;margin:0"> Show code</label><button id="lgo" type="button">Sign in</button></div>
-<div id="lm2" class="err"></div></div></div>
+<div id="lm2" class="err"></div><div style="text-align:center;margin-top:14px;font-size:15px;font-weight:700;color:var(--fg)">Created by: Youssra Yassin</div></div></div>
 <div id="chg" class="hid"><div class="card" style="width:100%;max-width:380px;margin:0"><div class="name" style="margin-bottom:6px">Choose your own access code</div>
 <p class="sm" id="cht">The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.</p>
 <label>New access code</label><input id="cn1" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 8px"><label>Repeat the new code</label><input id="cn2" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 8px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input id="cshow" type="checkbox" style="width:auto;margin:0"> Show code</label>
@@ -60,6 +60,7 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 <div class="name" style="margin-top:14px">Access codes</div>
 <p class="sm">Each person signs in with their email and a personal access code. Press “New code” for a random code, or type your own (at least 8 letters or digits, any case) and press Set. Send the code to that person privately. A random code is shown only once; a new code replaces the old one and signs that person out. Save the table first when you add someone.</p>
 <table id="codet"><tbody></tbody></table></section></main>
+<footer style="text-align:center;padding:10px 14px 30px;font-size:16px;font-weight:700;color:var(--fg)">Created by: Youssra Yassin</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script>
