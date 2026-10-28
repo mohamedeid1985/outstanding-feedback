@@ -23,6 +23,10 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 .chip.on{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
 #codet{width:100%;border-collapse:collapse}#codet td{padding:3px 6px}#codet b{font-family:Consolas,monospace;font-size:15px;letter-spacing:1px}
 #permt{width:100%;border-collapse:collapse}#permt th{font-size:12px;color:var(--mut);text-align:left;padding:4px}#permt td{padding:3px}#permt td input{width:100%}
+.nw{display:flex;gap:8px;align-items:flex-start}.nw .note{flex:1}.nw>button{margin-top:10px}
+#cmpt{width:100%;border-collapse:collapse}#cmpt th{font-size:12px;color:var(--mut);text-align:left;padding:4px}#cmpt td{padding:4px;border-top:1px solid var(--bd)}#cmpt .n{text-align:right;font-variant-numeric:tabular-nums}
+.rs-New{color:var(--acc);font-weight:700}.rs-Cleared,.rs-Decreased{color:var(--ok);font-weight:700}.rs-Increased{color:var(--warn);font-weight:700}
+#bkd{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:14px;z-index:22}#bkd.hid{display:none}
 #chg{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:21}#chg.hid{display:none}
 #login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}#login.hid{display:none}
 #login .card{width:100%;max-width:360px;margin:0}#login input{width:100%;margin:4px 0 10px}
@@ -30,6 +34,7 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 <div id="login" class="hid"><div class="card"><div class="name" style="margin-bottom:8px">Sign in</div>
 <div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="40"><label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input id="lshow" type="checkbox" style="width:auto;margin:0"> Show code</label><button id="lgo" type="button">Sign in</button></div>
 <div id="lm2" class="err"></div><div style="text-align:center;margin-top:14px;font-size:15px;font-weight:700;color:var(--fg)">Created by: Youssra Yassin</div></div></div>
+<div id="bkd" class="hid"><div class="card" style="width:100%;max-width:420px;margin:0"><div class="name" style="margin-bottom:6px">Backup location</div><p class="sm" id="bkdt"></p><button id="bkd-same" type="button">Same folder</button> <button id="bkd-new" class="alt" type="button">Choose another folder</button> <button id="bkd-no" class="alt" type="button">Cancel</button></div></div>
 <div id="chg" class="hid"><div class="card" style="width:100%;max-width:380px;margin:0"><div class="name" style="margin-bottom:6px">Choose your own access code</div>
 <p class="sm" id="cht">The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.</p>
 <label>New access code</label><input id="cn1" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 8px"><label>Repeat the new code</label><input id="cn2" type="password" autocomplete="new-password" maxlength="40" style="width:100%;margin:4px 0 8px"><label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:0 0 10px"><input id="cshow" type="checkbox" style="width:auto;margin:0"> Show code</label>
@@ -40,19 +45,23 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 <label style="margin:0"><input type="checkbox" id="pend"> pending only</label>
 <div class="prog"><i id="pb"></i></div><span id="pt" class="sm"></span>
 <span id="me" class="sm"></span> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
-<main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="perm">Permissions</span></div>
+<main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="cmp">Compare</span><span class="chip" data-t="perm">Permissions</span></div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="chips" id="chips"></div>
 <details id="own" class="hid"><summary><b>Owner tools</b></summary>
 <p class="sm">Report date <input type="date" id="rdi"> <button id="xl" type="button">Download Finance report (Excel)</button> <button id="exp" class="alt" type="button">CSV</button></p>
-<p class="sm"><b>Load a new week.</b> In Excel copy columns NO → Medical/Personnel Manager from the new report and paste here. Last week’s notes carry over automatically; rows not in the paste are removed.</p>
-<textarea id="ta" placeholder="NO&#9;Customer&#9;Payment term&#9;Balance&#9;Payroll manager&#9;Medical/Personnel manager"></textarea>
+<p class="sm"><b>Load a new week.</b> In Excel copy columns NO → Medical/Personnel Manager from the new report and paste here (an optional 7th column “Service type” can say Medical, Personnel…). Last week’s notes carry over automatically, and the new sheet is compared with the previous one in the <b>Compare</b> tab. Rows not in the paste are removed.</p>
+<textarea id="ta" placeholder="NO&#9;Customer&#9;Payment term&#9;Balance&#9;Payroll manager&#9;Medical/Personnel manager&#9;Service type (optional)"></textarea>
 <p><button id="ld" type="button">Load week</button> <span id="lm" class="sm"></span></p>
-<p class="sm"><b>Backups.</b> Choose your OneDrive backup folder once (Chrome or Edge). Backups are saved inside it in a folder named by the upload date, for example “outstanding 27-10-2026”. They run automatically around Load week; press Backup now any time. The database also keeps a daily snapshot for 30 days.</p>
-<p><button id="bkf" class="alt" type="button">Choose backup folder</button> <button id="bkn" type="button">Backup now</button> <span id="bkm" class="sm"></span></p>
+<p class="sm"><b>Backups (Excel).</b> Press Backup now. The first time you choose the folder; every time after that you are asked whether to keep the same folder or choose another one. The backup is an Excel file saved in a folder named by the upload date, for example “outstanding 27-10-2026”. It is also saved automatically around Load week when a folder has been chosen (Chrome or Edge). The database also keeps a daily snapshot for 30 days.</p>
+<p><button id="bkn" type="button">Backup now</button> <span id="bkm" class="sm"></span></p>
 <p class="sm"><b>“Ready for review” email (optional).</b> Paste the Power Automate flow URL. Leave it empty to see only the banner.</p>
 <p><input id="whu" type="url" placeholder="https://…" style="width:70%"> <button id="whs" class="alt" type="button">Save</button> <span id="whm" class="sm"></span></p></details>
 <div id="list"><p class="sm">Loading…</p></div>
+<section id="cmpv" class="card hid" style="border-left-color:var(--acc)"><div class="name">Compare with the previous sheet</div>
+<p class="sm" id="cmpi"></p>
+<p class="sm">Matched automatically by supervisor name, service type (Payroll, Medical/Personnel, …) and company name. Show <select id="cmpf"><option value="">All</option><option>New</option><option>Cleared</option><option>Increased</option><option>Decreased</option><option>Unchanged</option></select> <button id="cmpx" class="alt" type="button">Download comparison (Excel)</button></p>
+<table id="cmpt"><thead><tr><th>Supervisor</th><th>Service</th><th>Company</th><th class="n">Previous</th><th class="n">Now</th><th class="n">Difference</th><th>Result</th></tr></thead><tbody></tbody></table></section>
 <section id="permv" class="card hid" style="border-left-color:var(--acc)"><div class="name">Permissions</div>
 <p class="sm">Who can sign in. The supervisor name must match the manager name in the report. The delegate email has the same access as the supervisor; leave it empty if there is none. The owner always has access.</p>
 <table id="permt"><thead><tr><th>Supervisor</th><th>Email</th><th>Delegate Team Member</th><th></th></tr></thead><tbody></tbody></table>
@@ -86,13 +95,16 @@ const ST=[
 ['Within payment term',0,0,0,r=>`Payment term ${r.term} days as per client’s history`]];
 const REM={plan:r=>'Planned to be paid on '+D(r.plan,'[planned date?]'),follow:()=>PEND,wait:()=>WAIT,mgmt:()=>'Management Decision.'};
 const REML={plan:'Planned to be paid on (date)',follow:'Following up – no date yet',wait:'Waiting for client’s response',mgmt:'Management decision'};
-function note(r){const i=ST.findIndex(s=>s[0]===r.status);if(i<0)return '';let t=ST[i][4](r);
+function autoNote(r){const i=ST.findIndex(s=>s[0]===r.status);if(i<0)return '';let t=ST[i][4](r);
  if(i<3&&r.rem&&REM[r.rem])t+=', for the remaining '+REM[r.rem](r);
  if(r.extra)t+=' | '+r.extra;
  return t}
 const MS=[['Transfer done',1,r=>`Transfer done on ${D(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${D(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${D(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision.'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`]];
-function medNote(r){const s=MS.find(x=>x[0]===r.medStatus);if(!s&&!r.medAmt)return '';
+function autoMed(r){const s=MS.find(x=>x[0]===r.medStatus);if(!s&&!r.medAmt)return '';
  return (s?s[2](r):'[feedback?]')+(r.medExtra?' | '+r.medExtra:'')}
+// The owner can edit the generated text. The edit is used only while the automatic text it was based on has not changed.
+const effective=(r,auto,edit,base)=>(r[edit]&&r[base]===auto)?r[edit]:auto;
+const note=r=>effective(r,autoNote(r),'noteEdit','noteBase'),medNote=r=>effective(r,autoMed(r),'medNoteEdit','medNoteBase');
 const allNote=r=>note(r)+(medNote(r)?' | '+medNote(r):'');
 function miss(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
  if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.medAmt||r.medStatus){const q=MS.find(x=>x[0]===r.medStatus);if(!q)m.push('Medical/Personnel feedback');else if(q[1]&&!r.medDate)m.push('Medical/Personnel date')}return m.length?'Missing: '+m.join(', '):''}
@@ -139,14 +151,17 @@ function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}
 <div><label>Medical/Personnel feedback</label><select data-k="medStatus"><option value="">— choose —</option>${mo}</select></div>
 <div data-f="medDate"><label>Date</label><input type="date" data-k="medDate" value="${esc(r.medDate)}"></div>
 <div><label>Extra note (medical/personnel)</label><input data-k="medExtra" value="${esc(r.medExtra)}"></div></div>
-<div class="note" data-n="p"></div><div class="note" data-n="m"></div><div class="err"></div>
+<div class="nw"><div class="note" data-n="p"></div><button class="alt hid" type="button" data-edit="p">Edit</button></div><div class="nw"><div class="note" data-n="m"></div><button class="alt hid" type="button" data-edit="m">Edit</button></div><div class="err"></div>
 <div class="saverow"><button type="button" data-save="1">Save</button><span class="sv sm"></span></div>`}
-const KEYS=['status','date','amt','rem','plan','extra','medAmt','medStatus','medDate','medExtra'];
+const KEYS=['status','date','amt','rem','plan','extra','medAmt','medStatus','medDate','medExtra','noteEdit','noteBase','medNoteEdit','medNoteBase'];
+let isOwnerUI=false;
 function vals(el,base){const r={...base};el.querySelectorAll('[data-k]').forEach(i=>{const k=i.dataset.k;r[k]=i.type==='number'?(i.value===''?'':+i.value):i.value});return r}
 function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
  const show={date:s&&s[1],amt:i>=0&&i<3,rem:i>=0&&i<3,plan:(s&&s[3])||(i>=0&&i<3&&r.rem==='plan')};
  el.querySelectorAll('[data-f]').forEach(d=>d.classList.toggle('hid',!show[d.dataset.f]));
- el.querySelector('[data-n="p"]').textContent=note(r)||'The note for Finance appears here.';const mn=medNote(r),me=el.querySelector('[data-n="m"]');me.textContent=mn;me.classList.toggle('hid',!mn);const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
+ const np=el.querySelector('[data-n="p"]');if(!np.querySelector('textarea'))np.textContent=note(r)||'The note for Finance appears here.';
+ const mn=medNote(r),me=el.querySelector('[data-n="m"]');if(!me.querySelector('textarea'))me.textContent=mn;me.parentNode.classList.toggle('hid',!mn&&!me.querySelector('textarea'));
+ el.querySelectorAll('[data-edit]').forEach(b=>b.classList.toggle('hid',!isOwnerUI));const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
  el.classList.toggle('done',!!done(r))}
 function visible(r){return(!who||r.mgr===who||r.medMgr===who)&&(!$('pend').checked||!done(r))}
 function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML='';
@@ -161,8 +176,15 @@ function stats(){const all=Object.values(rows),mine=all.filter(r=>!who||r.mgr===
 const focusedCard=()=>document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.card');
 
 function markDirty(el,on){el.classList.toggle('dirty',on);if(on)el.querySelector('.sv').textContent='Unsaved changes – press Save'}
-$('list').addEventListener('input',e=>{const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true)});
-$('list').addEventListener('click',async e=>{const b=e.target.closest('[data-save]');if(!b)return;const el=b.closest('.card'),id=el.id,r=drafts[id]||rows[id];
+$('list').addEventListener('input',e=>{if(e.target.dataset.ne)return;const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true)});
+function noteEditOpen(btn){const k=btn.dataset.edit,el=btn.closest('.card'),r=drafts[el.id]||rows[el.id],box=el.querySelector('[data-n="'+k+'"]');if(box.querySelector('textarea'))return;
+ box.innerHTML='<textarea data-ne="'+k+'" style="width:100%;height:80px"></textarea><div style="margin-top:6px;display:flex;gap:8px"><button type="button" class="alt" data-ndone="'+k+'">Done</button><button type="button" class="alt" data-nreset="'+k+'">Back to automatic text</button></div>';
+ const ta=box.querySelector('textarea');ta.value=k==='p'?note(r):medNote(r);box.parentNode.classList.remove('hid');ta.focus()}
+function noteEditClose(btn){const reset=!!btn.dataset.nreset,k=btn.dataset.ndone||btn.dataset.nreset,el=btn.closest('.card'),r={...(drafts[el.id]||rows[el.id])},box=el.querySelector('[data-n="'+k+'"]'),ta=box.querySelector('textarea'),auto=k==='p'?autoNote(r):autoMed(r),text=reset?'':ta.value.trim(),ek=k==='p'?'noteEdit':'medNoteEdit',bk=k==='p'?'noteBase':'medNoteBase';
+ if(!text||text===auto){r[ek]='';r[bk]=''}else{r[ek]=text;r[bk]=auto}
+ box.innerHTML='';drafts[el.id]=r;paint(el,r);markDirty(el,true)}
+$('list').addEventListener('click',async e=>{const t=e.target;if(t.dataset.edit){noteEditOpen(t);return}if(t.dataset.ndone||t.dataset.nreset){noteEditClose(t);return}
+ const b=e.target.closest('[data-save]');if(!b)return;const el=b.closest('.card'),id=el.id,r=drafts[id]||rows[id];
  const d={};KEYS.forEach(k=>d[k]=r[k]);d.done=!!done(r);b.disabled=true;
  try{const s=await api('PUT','/api/row/'+id,d);rows[id]=s;delete drafts[id];markDirty(el,false);
   el.querySelector('.sv').textContent='Saved '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});stats()}
@@ -207,8 +229,27 @@ $('permt').onclick=e=>{if(e.target.dataset.del)e.target.closest('tr').remove()};
 $('us').onclick=async()=>{$('um').textContent='';
  const rows=[...$('permt').tBodies[0].rows].map(tr=>({supervisor:tr.querySelector('[data-p=supervisor]').value,email:tr.querySelector('[data-p=email]').value,delegate:tr.querySelector('[data-p=delegate]').value}));
  try{await api('PUT','/api/users',{rows});await loadPerm();$('um').textContent='Saved.'}catch(x){$('um').textContent='Failed: '+x.message}};
-function showTab(t){const p=t==='perm';if(p)$('ready').classList.add('hid');['chips','list'].forEach(i=>$(i).classList.toggle('hid',p));$('permv').classList.toggle('hid',!p);
- $('own').classList.toggle('hid',p||!(me&&me.owner));document.querySelectorAll('#tabs .chip').forEach(c=>c.classList.toggle('on',c.dataset.t===t));if(p)loadPerm().catch(()=>{})}
+function showTab(t){const p=t==='perm',c=t==='cmp';if(p||c)$('ready').classList.add('hid');['chips','list'].forEach(i=>$(i).classList.toggle('hid',p||c));$('permv').classList.toggle('hid',!p);$('cmpv').classList.toggle('hid',!c);
+ $('own').classList.toggle('hid',p||c||!(me&&me.owner));document.querySelectorAll('#tabs .chip').forEach(x=>x.classList.toggle('on',x.dataset.t===t));if(p)loadPerm().catch(()=>{});if(c)loadCmp().catch(()=>{})}
+let cmpData=null;const fmt0=n=>n==null?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+async function loadCmp(){cmpData=await rpc('api_compare');renderCmp()}
+function renderCmp(){const d=cmpData;if(!d)return;const tb=$('cmpt').tBodies[0];
+ if(!d.hasPrev){$('cmpi').textContent='There is no previous sheet yet. After the next Load week, the new sheet is compared with this one automatically.';tb.innerHTML='';return}
+ const f=$('cmpf').value,list=d.rows.filter(r=>!f||r.result===f),cnt={};d.rows.forEach(r=>cnt[r.result]=(cnt[r.result]||0)+1);const df=d.totals.cur-d.totals.prev;
+ $('cmpi').textContent='Previous sheet ('+(d.prevDate?D(d.prevDate):'?')+') → current sheet ('+(d.curDate?D(d.curDate):'?')+'): total '+fmt0(d.totals.prev)+' → '+fmt0(d.totals.cur)+' EGP ('+(df>0?'+':'')+fmt0(df)+'). '+Object.entries(cnt).map(([k,v])=>k+' '+v).join(' · ');
+ tb.innerHTML=list.map(r=>`<tr><td>${esc(r.supervisor)}</td><td>${esc(r.service)}</td><td>${esc(r.customer)}</td><td class="n">${fmt0(r.prev)}</td><td class="n">${fmt0(r.cur)}</td><td class="n">${r.diff>0?'+':''}${fmt0(r.diff)}</td><td class="rs-${r.result}">${r.result}</td></tr>`).join('')}
+$('cmpf').onchange=renderCmp;
+$('cmpx').onclick=async()=>{if(!cmpData||!cmpData.hasPrev){alert('There is no previous sheet to compare with yet.');return}if(!window.ExcelJS){alert('The Excel library did not load (it needs internet access to cdnjs.cloudflare.com).');return}
+ try{const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Comparison',{views:[{state:'frozen',ySplit:3}]}),d=cmpData;
+  ws.columns=[{width:22},{width:28},{width:38},{width:16},{width:16},{width:16},{width:14}];
+  ws.addRow(['Outstanding – comparison with the previous sheet']).font={bold:true,size:14};
+  ws.addRow(['Previous sheet: '+(d.prevDate||'?')+'   |   Current sheet: '+(d.curDate||'?')+'   |   Total '+fmt0(d.totals.prev)+' → '+fmt0(d.totals.cur)+' EGP']);
+  const h=ws.addRow(['Supervisor','Service','Company','Previous','Now','Difference','Result']);h.font={bold:true,color:{argb:'FFFFFFFF'}};h.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});
+  const cl={New:'FFDDEBF7',Cleared:'FFE2EFDA',Decreased:'FFE2EFDA',Increased:'FFFFF2CC',Unchanged:'FFFFFFFF'};
+  d.rows.forEach(r=>{const x=ws.addRow([r.supervisor,r.service,r.customer,r.prev==null?'':+r.prev,r.cur==null?'':+r.cur,+r.diff,r.result]);x.getCell(7).fill={type:'pattern',pattern:'solid',fgColor:{argb:cl[r.result]||'FFFFFFFF'}};[4,5,6].forEach(i=>x.getCell(i).numFmt='#,##0')});
+  const last=ws.rowCount;const t=ws.addRow(['','','Total',{formula:'SUM(D4:D'+last+')'},{formula:'SUM(E4:E'+last+')'},{formula:'SUM(F4:F'+last+')'},'']);t.font={bold:true};[4,5,6].forEach(i=>t.getCell(i).numFmt='#,##0');
+  ws.autoFilter={from:{row:3,column:1},to:{row:3,column:7}};
+  saveFile('Outstanding_comparison_'+(d.curDate||'')+'.xlsx',await wb.xlsx.writeBuffer(),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}catch(x){alert('Could not build the Excel file: '+x.message)}};
 $('tabs').onclick=e=>{if(e.target.dataset.t)showTab(e.target.dataset.t)};
 function showChange(forced){$('login').classList.add('hid');$('chg').classList.remove('hid');$('chcancel').classList.toggle('hid',!!forced);$('chm').textContent='';
  $('cht').textContent=forced?'The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.':'Choose a new access code (at least 8 letters or digits).'}
@@ -225,7 +266,7 @@ $('chsave').onclick=async()=>{const a=$('cn1').value,b=$('cn2').value;$('chm').t
   await sb.auth.refreshSession();$('chg').classList.add('hid');$('cn1').value=$('cn2').value='';await boot()}catch(x){$('chm').textContent=x.message}};
 async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
  if(me.mustChange){showChange(true);return}
- $('login').classList.add('hid');$('me').textContent=me.email;$('tabs').classList.toggle('hid',!me.owner);showTab('fb');
+ $('login').classList.add('hid');$('me').textContent=me.email;isOwnerUI=!!me.owner;$('tabs').classList.toggle('hid',!me.owner);showTab('fb');
  if(me.owner){$('whu').placeholder=me.webhookSet?'(saved – paste a new URL to replace it)':'https://…';rpc('api_set_settings',{p_webhook:null,p_app_url:location.origin+location.pathname}).catch(()=>{})}
  await sync(true);if(!poll)poll=setInterval(()=>{if(me)sync(false)},5000)}
 
@@ -268,13 +309,18 @@ $('ld').onclick=async()=>{const T=$('ta').value.trim().split(/\r?\n/).map(l=>l.s
  const bad=T.find(c=>isNaN(bal(c[3])));if(bad){$('lm').textContent='Cannot read the balance for '+bad[1].trim()+' – fix it and paste again.';return}
  if(!confirm('Replace the current list with '+T.length+' customers?'))return;$('lm').textContent='Loading…';
  try{let bh=null;try{bh=await dirHandle(true)}catch(x){}
-  if(bh){try{await backupNow()}catch(x){}}
-  await sync(true);const prev={};let seen={};const ky=s=>{seen[s]=(seen[s]||0)+1;return s+'#'+seen[s]};
-  Object.keys(rows).sort().forEach(id=>{prev[ky(rows[id].customer)]=rows[id]});seen={};
-  const out=T.map(c=>{const name=c[1].trim(),p=prev[ky(name)];return{no:+c[0],customer:name,term:(c[2]||'').trim(),balance:bal(c[3]),mgr:(c[4]||'').trim(),medMgr:(c[5]||'').trim(),lwNote:p?(p.status?allNote(p):p.lwNote||''):'',lwProm:p?(p.plan||p.lwProm||''):''}});
+  if(bh){try{await backupNow(bh,'before_load')}catch(x){}}
+  await sync(true);
+  const nk=s=>String(s||'').toLowerCase().replace(/\b(mr|mrs|ms|dr|eng)\b/g,' ').replace(/[^a-z؀-ۿ]/g,'').replace(/m[ou]h?a?m+[ae]d/g,'mohamed').replace(/ee|ie|ei|y/g,'i').replace(/(.)\1+/g,'$1');
+  const svcOf=o=>(o.service||'').trim()||(o.medMgr?'Payroll + Medical/Personnel':'Payroll'),keyOf=o=>nk(o.mgr)+'|'+nk(svcOf(o))+'|'+nk(o.customer);
+  const byKey={},byCust={},used=new Set();
+  Object.keys(rows).sort().forEach(id=>{const o=rows[id];(byKey[keyOf(o)]=byKey[keyOf(o)]||[]).push(o);(byCust[nk(o.customer)]=byCust[nk(o.customer)]||[]).push(o)});
+  const pick=o=>{for(const l of [byKey[keyOf(o)]||[],byCust[nk(o.customer)]||[]]){const p=l.find(x=>!used.has(x));if(p){used.add(p);return p}}return null};
+  const out=T.map(c=>{const o={no:+c[0],customer:c[1].trim(),term:(c[2]||'').trim(),balance:bal(c[3]),mgr:(c[4]||'').trim(),medMgr:(c[5]||'').trim(),service:(c[6]||'').trim()},p=pick(o);
+   return{...o,lwNote:p?(p.status?allNote(p):p.lwNote||''):'',lwProm:p?(p.plan||p.lwProm||''):''}});
   const res=await api('POST','/api/load',{rows:out});await sync(true);
-  let bk='';if(bh){try{const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';await backupNow('',['NO','Customer','Payment term','Balance','Payroll manager','Medical/Personnel manager'].map(q).join(',')+'\r\n'+out.map(o=>[o.no,o.customer,o.term,o.balance,o.mgr,o.medMgr].map(q).join(',')).join('\r\n'));bk=' Backup saved.'}catch(x){bk=' Backup failed: '+x.message}}
-  $('lm').textContent='Done – '+out.length+' customers loaded.'+bk+(res.unmatched&&res.unmatched.length?' Not in the Permissions tab (nobody can fill these): '+res.unmatched.join(', ')+'.':'');$('ta').value=''}catch(x){$('lm').textContent='Failed: '+x.message}};
+  let bk='';if(bh){try{await backupNow(bh,'after_load');bk=' Backup saved.'}catch(x){bk=' Backup failed: '+x.message}}else bk=' (No backup folder chosen yet: press Backup now.)';
+  $('lm').textContent='Done – '+out.length+' customers loaded.'+bk+(res.unmatched&&res.unmatched.length?' Not in the Permissions tab (nobody can fill these): '+res.unmatched.join(', ')+'.':'');$('ta').value='';showTab('cmp')}catch(x){$('lm').textContent='Failed: '+x.message}};
 
 const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('bk',1);r.onupgradeneeded=()=>r.result.createObjectStore('h');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
 const idbGet=async k=>{const d=await idb();return new Promise(res=>{const q=d.transaction('h').objectStore('h').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>res(null)})};
@@ -282,17 +328,37 @@ const idbSet=async(k,v)=>{const d=await idb();return new Promise((res,rej)=>{con
 const pad=n=>String(n).padStart(2,'0');
 const folderName=iso=>{if(!iso)return 'outstanding (no sheet yet)';const [y,m,d]=iso.split('-');return 'outstanding '+d+'-'+m+'-'+y};
 async function dirHandle(ask){const h=await idbGet('dir');if(!h)return null;let p=await h.queryPermission({mode:'readwrite'});if(p!=='granted'&&ask)p=await h.requestPermission({mode:'readwrite'});return p==='granted'?h:null}
-async function backupNow(reason,sheetCsv){
- const data=await rpc('api_export'),n=new Date(),stamp=''+n.getFullYear()+pad(n.getMonth()+1)+pad(n.getDate())+'_'+pad(n.getHours())+pad(n.getMinutes())+pad(n.getSeconds()),text=JSON.stringify(data,null,1);
- const h=await dirHandle(true);
- if(!h){saveFile('outstanding_backup_'+stamp+'.json',text,'application/json');return 'downloaded (no backup folder chosen yet)'}
- const sub=await h.getDirectoryHandle(folderName(data.sheetDate),{create:true});
- const w=async(name,txt)=>{const f=await sub.getFileHandle(name,{create:true}),s=await f.createWritable();await s.write(txt);await s.close()};
- await w('data_'+stamp+'.json',text);if(sheetCsv)await w('sheet_'+stamp+'.csv','﻿'+sheetCsv);
- return 'saved in “'+folderName(data.sheetDate)+'”'}
-$('bkf').onclick=async()=>{if(!window.showDirectoryPicker){$('bkm').textContent='This browser cannot save to a folder. Use Chrome or Edge.';return}
- try{const h=await showDirectoryPicker({mode:'readwrite'});await idbSet('dir',h);$('bkm').textContent='Folder: '+h.name}catch(x){}};
-$('bkn').onclick=async()=>{$('bkm').textContent='…';try{$('bkm').textContent='Backup '+await backupNow()}catch(x){$('bkm').textContent='Failed: '+x.message}};
+// The backup is an Excel workbook: the sheet with all feedback and notes, plus the permissions table.
+async function buildBackupBook(data){
+ if(!window.ExcelJS)throw new Error('The Excel library did not load (it needs internet access to cdnjs.cloudflare.com).');
+ const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Outstanding backup',{views:[{state:'frozen',ySplit:1}]});
+ const cols=[['NO',r=>r.no,6],['Customer',r=>r.customer,36],['Payment term',r=>r.term,12],['Balance (EGP)',r=>+r.balance||0,16],['Payroll manager',r=>r.mgr,20],['Medical/Personnel manager',r=>r.medMgr,22],['Service',r=>r.service||'',18],
+  ['Status',r=>r.status||'',26],['Date',r=>r.date||'',12],['Amount received',r=>r.amt===''||r.amt==null?'':+r.amt,16],['Remainder',r=>r.rem||'',16],['Planned date',r=>r.plan||'',12],['Extra note',r=>r.extra||'',30],
+  ['Medical portion',r=>r.medAmt===''||r.medAmt==null?'':+r.medAmt,16],['Medical status',r=>r.medStatus||'',26],['Medical date',r=>r.medDate||'',12],['Medical extra note',r=>r.medExtra||'',30],
+  ['Note for Finance',r=>note(r),60],['Medical/Personnel note',r=>medNote(r),50],['Complete',r=>r.done?'yes':'no',10],['Last saved by',r=>r._by||'',30]];
+ ws.columns=cols.map(c=>({header:c[0],width:c[2]}));
+ data.rows.forEach(r=>ws.addRow(cols.map(c=>c[1](r))));
+ const hd=ws.getRow(1);hd.font={bold:true,color:{argb:'FFFFFFFF'}};hd.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});ws.getColumn(4).numFmt='#,##0';
+ const wp=wb.addWorksheet('Permissions');wp.columns=[{header:'Supervisor',width:26},{header:'Email',width:38},{header:'Delegate Team Member',width:38}];
+ (data.perm||[]).forEach(p=>wp.addRow([p.supervisor,p.email,p.delegate]));wp.getRow(1).font={bold:true};
+ const wi=wb.addWorksheet('Info');wi.addRow(['Sheet uploaded on',data.sheetDate||'']);wi.addRow(['Report date',data.reportDate||'']);wi.addRow(['Backup taken at',String(data.takenAt||'')]);wi.getColumn(1).width=22;wi.getColumn(2).width=40;
+ return wb}
+async function backupNow(h,reason){
+ const data=await rpc('api_export'),n=new Date(),stamp=''+n.getFullYear()+pad(n.getMonth()+1)+pad(n.getDate())+'_'+pad(n.getHours())+pad(n.getMinutes())+pad(n.getSeconds());
+ const buf=await (await buildBackupBook(data)).xlsx.writeBuffer(),name=(reason?reason+'_':'')+'Backup_'+stamp+'.xlsx';
+ if(!h){saveFile(name,buf,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');return 'downloaded “'+name+'” (this browser cannot save into a folder)'}
+ const sub=await h.getDirectoryHandle(folderName(data.sheetDate),{create:true}),f=await sub.getFileHandle(name,{create:true}),s=await f.createWritable();await s.write(buf);await s.close();
+ return 'saved “'+name+'” in “'+folderName(data.sheetDate)+'”'}
+async function pickFolder(){const h=await showDirectoryPicker({mode:'readwrite'});await idbSet('dir',h);$('bkm').textContent='Folder: '+h.name;return h}
+function askFolder(name){return new Promise(res=>{const m=$('bkd');$('bkdt').textContent=name?'Save this backup in the same folder “'+name+'”, or choose another folder?':'Choose the folder where the backup will be saved. You will be asked each time whether to keep it.';
+ $('bkd-same').classList.toggle('hid',!name);$('bkd-new').textContent=name?'Choose another folder':'Choose folder';m.classList.remove('hid');
+ const done=v=>{m.classList.add('hid');res(v)};$('bkd-same').onclick=()=>done('same');$('bkd-new').onclick=()=>done('new');$('bkd-no').onclick=()=>done('cancel')})}
+$('bkn').onclick=async()=>{$('bkm').textContent='';
+ try{if(!window.showDirectoryPicker){$('bkm').textContent='Backup '+await backupNow(null);return}
+  let h=await idbGet('dir');const c=await askFolder(h?h.name:'');if(c==='cancel')return;
+  if(c==='new'||!h)h=await pickFolder();
+  if(await h.queryPermission({mode:'readwrite'})!=='granted'&&await h.requestPermission({mode:'readwrite'})!=='granted'){$('bkm').textContent='No permission to write in that folder.';return}
+  $('bkm').textContent='…';$('bkm').textContent='Backup '+await backupNow(h)}catch(x){$('bkm').textContent=x&&x.name==='AbortError'?'':'Failed: '+x.message}};
 $('whs').onclick=async()=>{const v=$('whu').value.trim();$('whm').textContent='';try{await rpc('api_set_settings',{p_webhook:v,p_app_url:null});$('whm').textContent=v?'Saved.':'Cleared.';$('whu').value='';$('whu').placeholder=v?'(saved – paste a new URL to replace it)':'https://…'}catch(x){$('whm').textContent=x.message}};
 (async()=>{try{const h=await idbGet('dir');if(h)$('bkm').textContent='Folder: '+h.name}catch(x){}})();
 
