@@ -14,8 +14,8 @@ main{max-width:900px;margin:0 auto;padding:12px 14px 40px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{font-size:12px;font-weight:700;color:var(--acc);border:1px solid var(--bd);border-radius:14px;padding:3px 10px;background:var(--chip);cursor:pointer}
 .card{background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--warn);border-radius:8px;padding:16px 18px;margin:14px 0}.card.done{border-left-color:var(--ok)}.card.dirty{border-left-color:var(--sun)}.saverow{display:flex;gap:10px;align-items:center;margin-top:8px}
 .top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}.name{font-weight:700}.bal{font-variant-numeric:tabular-nums;font-weight:700;color:var(--acc)}
-.meta{color:var(--mut);font-size:12px;margin:2px 0 8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
-label{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:3px}.ctabs{display:flex;gap:4px;border-bottom:1px solid var(--bd);margin:4px 0 12px}.ctabs button{background:none;color:var(--mut);border:0;border-bottom:2px solid transparent;border-radius:0;padding:6px 12px;font-weight:600}.ctabs button.on{color:var(--acc);border-bottom-color:var(--acc)}.ctabs b{color:var(--sun)}.lw{margin:2px 0 10px;padding:6px 10px;border-left:2px solid var(--bd);color:var(--mut);font-size:12px}.badge{display:inline-block;font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--acc);color:var(--acc);border-radius:10px;padding:1px 8px;margin-left:6px}#q{flex:1 1 220px;min-width:160px}.grid input,.grid select{width:100%;background:var(--inp)}
+.meta{color:var(--mut);font-size:12px;margin:2px 0 8px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px}
+label{display:block;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:3px}.ctabs{display:flex;gap:4px;border-bottom:1px solid var(--bd);margin:4px 0 12px}.ctabs button{background:none;color:var(--mut);border:0;border-bottom:2px solid transparent;border-radius:0;padding:6px 12px;font-weight:600}.ctabs button.on{color:var(--acc);border-bottom-color:var(--acc)}.ctabs b{color:var(--sun)}.lw{margin:2px 0 10px;padding:6px 10px;border-left:2px solid var(--bd);color:var(--mut);font-size:12px}.badge{display:inline-block;font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--acc);color:var(--acc);border-radius:10px;padding:1px 8px;margin-left:6px}  .dw{display:flex;align-items:center;gap:8px}.dw input{width:150px!important;flex:none}.wd{font-size:13px;font-weight:700;color:var(--sun)}#q{flex:1 1 220px;min-width:160px}.grid input,.grid select{width:100%;background:var(--inp)}
 .hid{display:none}.note{margin-top:8px;padding:7px 9px;background:var(--chip);border:1px solid var(--bd);border-radius:8px;font-size:13px;min-height:28px}
 .err{color:var(--warn);font-size:12px;margin-top:4px}details{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;margin:10px 0}
 textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus,input:focus,textarea:focus{outline:2px solid var(--sun);outline-offset:1px}
@@ -74,13 +74,15 @@ textarea{width:100%;height:90px}.sm{font-size:12px;color:var(--mut)}select:focus
 <script>
 const MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const D=(v,p='[date?]')=>{if(!v)return p;const [y,m,d]=String(v).split('-');return +d+' '+MO[m-1]+' '+y};
+const WD=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],MF=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DW=(v,p='[date?]')=>{if(!v)return p;const [y,m,d]=String(v).split('-').map(Number);return WD[new Date(Date.UTC(y,m-1,d)).getUTCDay()]+', '+d+' '+MF[m-1]+' '+y};
 const A=n=>n===''||n==null?'[amount?]':Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const PEND='We are following Up with Client for the Pending Invoice to get specific date of payment',WAIT='Waiting for the client’s response';
 const ST=[
-['Transfer done',1,1,0,r=>`Transfer done on ${D(r.date)} with amount (${A(r.amt)} EGP)`],
-['Cheque received',1,1,0,r=>`CHQ Received on ${D(r.date)} with amount (${A(r.amt)} EGP)`],
+['Transfer done',1,1,0,r=>`Transfer done on ${DW(r.date)} with amount (${A(r.amt)} EGP)`],
+['Cheque received',1,1,0,r=>`CHQ Received on ${DW(r.date)} with amount (${A(r.amt)} EGP)`],
 ['Transfer done – waiting to reflect',0,0,0,r=>`As per client feedback Transfer done${r.amt?` with amount (${A(r.amt)} EGP) `:' '}waiting to reflect on our account`],
-['Planned payment date',0,0,1,r=>`Planned to be paid on ${D(r.plan,'[planned date?]')}`],
+['Planned payment date',0,0,1,r=>`Planned to be paid on ${DW(r.plan,'[planned date?]')}`],
 ['Following up – no date yet',0,0,0,()=>PEND],
 ['Waiting for client’s response',0,0,0,()=>WAIT],
 ['Pending PO',0,0,0,r=>`Pending PO from ${r.customer} Side`],
@@ -94,13 +96,13 @@ const ST=[
 ['Escalated to Mr. Sherif',0,0,0,()=>'Feedback with Mr. Sherif'],
 ['Within payment term',0,0,0,r=>`Payment term ${r.term} days as per client’s history`],
 ['Extra note only',0,0,0,r=>r.extra||'[note?]']];
-const REM={plan:r=>'Planned to be paid on '+D(r.plan,'[planned date?]'),follow:()=>PEND,wait:()=>WAIT,mgmt:()=>'Management Decision'};
+const REM={plan:r=>'Planned to be paid on '+DW(r.plan,'[planned date?]'),follow:()=>PEND,wait:()=>WAIT,mgmt:()=>'Management Decision'};
 const REML={plan:'Planned to be paid on (date)',follow:'Following up – no date yet',wait:'Waiting for client’s response',mgmt:'Management decision'};
 function autoNote(r){const i=ST.findIndex(s=>s[0]===r.status);if(i<0)return '';let t=ST[i][4](r);
  if(i<3&&r.rem&&REM[r.rem])t+=', for the remaining '+REM[r.rem](r);
  if(r.extra&&r.status!=='Extra note only')t+=' | '+r.extra;
  return t}
-const MS=[['Transfer done',1,r=>`Transfer done on ${D(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${D(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${D(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision'],['Extra note only',0,r=>r.medExtra||'[note?]'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`]];
+const MS=[['Transfer done',1,r=>`Transfer done on ${DW(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${DW(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${DW(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision'],['Extra note only',0,r=>r.medExtra||'[note?]'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`]];
 function autoMed(r){const s=MS.find(x=>x[0]===r.medStatus);if(!s&&!r.medAmt)return '';
  return (s?s[2](r):'[feedback?]')+(r.medExtra&&r.medStatus!=='Extra note only'?' | '+r.medExtra:'')}
 // The owner can edit the generated text. The edit is used only while the automatic text it was based on has not changed.
@@ -138,7 +140,7 @@ async function api(method,path,body){
  throw fail('not found',404)}
 const nk=s=>String(s||'').toLowerCase().replace(/\b(mr|mrs|ms|dr|eng)\b/g,' ').replace(/[^a-z؀-ۿ]/g,'').replace(/m[ou]h?a?m+[ae]d/g,'mohamed').replace(/ee|ie|ei|y/g,'i').replace(/(.)\1+/g,'$1');
 const typeOf=r=>(r.service||'').trim()||r.medType||(r.medMgr?'Payroll + Medical/Personnel':'Payroll');
-const isMedType=r=>/medical|personnel/i.test((r.service||'').trim()||'')&&!/payroll/i.test(r.service||'');
+const isMedType=r=>{const s=(r.service||'').trim();return s?(/medical|personnel/i.test(s)&&!/payroll/i.test(s)):!!r.medType&&!r.medMgr};
 const exportNote=r=>isMedType(r)?(medNote(r)||note(r)):(note(r)||medNote(r));
 const exportStatus=r=>isMedType(r)&&r.medStatus?r.medStatus:(r.status||r.medStatus||'');
 const ctab={},fmt0=n=>n==null||n===''?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
@@ -156,16 +158,16 @@ function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}
 <div class="meta">Term: ${esc(r.term)} · ${esc(r.mgr)}${r.medMgr?' · Medical/Personnel: '+esc(r.medMgr):''}</div>${lwHtml(r)}
 <div class="ctabs"><button type="button" data-ct="fin" class="${tb==='fin'?'on':''}">Finance feedback</button><button type="button" data-ct="med" class="${tb==='med'?'on':''}">Medical / Personnel feedback${medOn?' <b>•</b>':''}</button></div>
 <div data-pane="fin"${tb==='fin'?'':' class="hid"'}><div class="grid"><div><label>Status</label><select data-k="status"><option value="">— choose —</option>${o}</select></div>
-<div data-f="date"><label>Transfer / cheque date</label><input type="date" data-k="date" value="${esc(r.date)}"></div>
+<div data-f="date"><label>Transfer / cheque date</label><span class="dw"><input type="date" data-k="date" value="${esc(r.date)}"><b class="wd"></b></span></div>
 <div data-f="amt"><label>Amount received (EGP)</label><input type="number" min="0" step="0.01" data-k="amt" value="${esc(r.amt)}"></div>
 <div data-f="rem"><label>Remainder (if partly paid)</label><select data-k="rem"><option value="">—</option>${ro}</select></div>
-<div data-f="plan"><label>Planned payment date</label><input type="date" data-k="plan" value="${esc(r.plan)}"></div>
+<div data-f="plan"><label>Planned payment date</label><span class="dw"><input type="date" data-k="plan" value="${esc(r.plan)}"><b class="wd"></b></span></div>
 <div><label>Reason / extra note</label><input data-k="extra" value="${esc(r.extra)}"></div></div>
 <div class="nw"><div class="note" data-n="p"></div><button class="alt hid" type="button" data-edit="p">Edit</button></div></div>
 <div data-pane="med"${tb==='med'?'':' class="hid"'}><div class="grid"><div><label>Invoice type</label><select data-k="medType"><option value="">— choose —</option>${mt}</select></div>
 <div><label>Medical/Personnel portion (EGP)</label><input type="number" min="0" step="0.01" data-k="medAmt" value="${esc(r.medAmt)}"></div>
 <div><label>Feedback status</label><select data-k="medStatus"><option value="">— choose —</option>${mo}</select></div>
-<div data-f="medDate"><label>Date</label><input type="date" data-k="medDate" value="${esc(r.medDate)}"></div>
+<div data-f="medDate"><label>Date</label><span class="dw"><input type="date" data-k="medDate" value="${esc(r.medDate)}"><b class="wd"></b></span></div>
 <div><label>Extra note</label><input data-k="medExtra" value="${esc(r.medExtra)}"></div></div>
 <div class="nw"><div class="note" data-n="m"></div><button class="alt hid" type="button" data-edit="m">Edit</button></div></div>
 <div class="err"></div>
@@ -179,6 +181,7 @@ function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
  const np=el.querySelector('[data-n="p"]');if(!np.querySelector('textarea'))np.textContent=note(r)||'The note for Finance appears here.';
  const mn=medNote(r),me=el.querySelector('[data-n="m"]');if(!me.querySelector('textarea'))me.textContent=mn||'The Medical/Personnel note appears here.';
  el.querySelectorAll('[data-edit]').forEach(b=>b.classList.toggle('hid',!isOwnerUI));const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
+ ['date','plan','medDate'].forEach(k=>{const i=el.querySelector('[data-k="'+k+'"]');if(!i)return;const s=i.parentNode.querySelector('.wd');if(s)s.textContent=r[k]?DW(r[k]).split(',')[0]:''});
  el.classList.toggle('done',!!done(r))}
 function visible(r){const q=$('q').value.trim().toLowerCase();return(!who||r.mgr===who||r.medMgr===who)&&(!$('pend').checked||!done(r))&&(!q||String(r.customer).toLowerCase().includes(q))}
 function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML='';
@@ -273,14 +276,14 @@ async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
 function saveFile(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $('exp').onclick=()=>{const q=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v)&&isNaN(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
  const H=['NO','Customer','Type','Payment term','Balance','Payroll manager','Status','Notes','Medical/Personnel manager','Medical/Personnel portion','Medical/Personnel notes','Planned date'];
- const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,typeOf(r),r.term,r.balance,r.mgr,r.status||'',note(r),r.medMgr||'',r.medAmt??'',medNote(r),r.plan||''].map(q).join(','));
+ const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,typeOf(r),r.term,r.balance,r.mgr,exportStatus(r),exportNote(r),r.medMgr||'',r.medAmt??'',isMedType(r)?'':medNote(r),(isMedType(r)?r.medDate:r.plan)?DW(isMedType(r)?r.medDate:r.plan):''].map(q).join(','));
  saveFile('Notes_Invoices_not_settled_'+(meta.date||'')+'.csv','﻿'+[H.map(q).join(',')].concat(L).join('\r\n'),'text/csv;charset=utf-8')};
 $('xl').onclick=async()=>{if(!window.ExcelJS){alert('Excel export needs internet access to load the ExcelJS library. Use the CSV button instead.');return}
 try{
 const rs=Object.keys(rows).sort().map(id=>rows[id]),wb=new ExcelJS.Workbook(),H=5;
 const ws=wb.addWorksheet('Outstanding',{views:[{state:'frozen',ySplit:H,showGridLines:false}],pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:'5:5'}});
 const F=o=>({name:'Arial',size:10,...o}),th={style:'thin',color:{argb:'FFBFC7D5'}},BD={top:th,left:th,bottom:th,right:th},FL=z=>({type:'pattern',pattern:'solid',fgColor:{argb:z}});
-const cols=[['NO',6],['Customer',38],['Type',22],['Payment term',12],['Balance (EGP)',16],['Payroll manager',18],['Status',26],['Notes',60],['Medical / Personnel manager',20],['Medical / Personnel portion (EGP)',17],['Medical / Personnel notes',50],['Planned date',14]],N=cols.length;
+const cols=[['NO',6],['Customer',38],['Type',22],['Payment term',12],['Balance (EGP)',16],['Payroll manager',18],['Status',26],['Notes',60],['Medical / Personnel manager',20],['Medical / Personnel portion (EGP)',17],['Medical / Personnel notes',50],['Planned date',30]],N=cols.length;
 cols.forEach((x,i)=>ws.getColumn(i+1).width=x[1]);
 const tot=rs.reduce((s,r)=>s+(+r.balance||0),0),dn=rs.filter(done).length;
 ws.mergeCells(1,1,1,N);let c=ws.getCell(1,1);c.value='Outstanding invoices – notes for Finance';c.font=F({size:16,bold:true,color:{argb:'FFFFFFFF'}});c.fill=FL('FF1F3864');c.alignment={vertical:'middle',indent:1};ws.getRow(1).height=30;
@@ -288,10 +291,10 @@ ws.mergeCells(2,1,2,N);c=ws.getCell(2,1);c.value='Report date: '+D(meta.date,'�
 ws.mergeCells(3,1,3,N);c=ws.getCell(3,1);c.value='Status colours:  green = payment received  ·  blue = date committed  ·  amber = no commitment yet  ·  grey = special case  ·  red = no feedback yet';c.font=F({italic:true,size:9,color:{argb:'FF667085'}});c.alignment={indent:1};
 cols.forEach((x,i)=>{c=ws.getCell(H,i+1);c.value=x[0];c.font=F({bold:true,color:{argb:'FFFFFFFF'}});c.fill=FL('FF1F3864');c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.border=BD});ws.getRow(H).height=34;
 const col=st=>{const i=ST.findIndex(s=>s[0]===st);return i<0?(MS.some(s=>s[0]===st)?'FFFFF2CC':'FFFCE4D6'):i<3?'FFE2EFDA':(st==='Planned payment date'||st==='Within payment term')?'FFDDEBF7':i<7?'FFFFF2CC':'FFEDEDED'};
-rs.forEach((r,k)=>{const n=H+1+k,row=ws.getRow(n),pn=note(r),mn=medNote(r),es=r.status||'',pd=r.plan?String(r.plan).split('-').map(Number):null;
+rs.forEach((r,k)=>{const n=H+1+k,row=ws.getRow(n),pn=exportNote(r),mn=isMedType(r)?'':medNote(r),es=exportStatus(r),pv=isMedType(r)?r.medDate:r.plan,pd=pv?String(pv).split('-').map(Number):null;
  const v=[r.no,r.customer,typeOf(r),(r.term===''||isNaN(+r.term))?r.term:+r.term,+r.balance||0,r.mgr||'',es||(mn?'':'No feedback yet'),pn,r.medMgr||'',r.medAmt===''||r.medAmt==null?'':+r.medAmt,mn,pd?new Date(Date.UTC(pd[0],pd[1]-1,pd[2])):''];
  v.forEach((x,i)=>{const z=row.getCell(i+1);z.value=x;z.font=F();z.border=BD;z.alignment={vertical:'top',wrapText:i===1||i===2||i===7||i===10,...((i===0||i===3||i===11)?{horizontal:'center'}:{})};if(k%2)z.fill=FL('FFF7F9FC')});
- row.getCell(5).numFmt='#,##0';row.getCell(10).numFmt='#,##0';row.getCell(12).numFmt='d mmm yyyy';
+ row.getCell(5).numFmt='#,##0';row.getCell(10).numFmt='#,##0';row.getCell(12).numFmt='dddd, d mmmm yyyy';
  const sc=row.getCell(7);sc.fill=FL(col(es));sc.font=F({bold:true});
  row.height=Math.max(18,13*Math.max(Math.ceil(pn.length/62),Math.ceil(mn.length/52),Math.ceil((r.customer||'').length/40),1)+5)});
 const e=H+1+rs.length;ws.getCell(e,2).value='Total outstanding';ws.getCell(e,5).value={formula:`SUM(E${H+1}:E${e-1})`,result:tot};
