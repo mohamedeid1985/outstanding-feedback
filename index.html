@@ -79,10 +79,10 @@ const DW=(v,p='[date?]')=>{if(!v)return p;const [y,m,d]=String(v).split('-').map
 const A=n=>n===''||n==null?'[amount?]':Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const PEND='We are following Up with Client for the Pending Invoice to get specific date of payment',WAIT='Waiting for the client’s response';
 const ST=[
-['Transfer done',1,1,0,r=>`Transfer done on ${DW(r.date)} with amount (${A(r.amt)} EGP)`],
-['Cheque received',1,1,0,r=>`CHQ Received on ${DW(r.date)} with amount (${A(r.amt)} EGP)`],
+['Transfer done',1,1,0,r=>`Transfer done on ${D(r.date)} with amount (${A(r.amt)} EGP)`],
+['Cheque received',1,1,0,r=>`CHQ Received on ${D(r.date)} with amount (${A(r.amt)} EGP)`],
 ['Transfer done – waiting to reflect',0,0,0,r=>`As per client feedback Transfer done${r.amt?` with amount (${A(r.amt)} EGP) `:' '}waiting to reflect on our account`],
-['Planned payment date',0,0,1,r=>`Planned to be paid on ${DW(r.plan,'[planned date?]')}`],
+['Planned payment date',0,0,1,r=>`Planned to be paid on ${D(r.plan,'[planned date?]')}`],
 ['Following up – no date yet',0,0,0,()=>PEND],
 ['Waiting for client’s response',0,0,0,()=>WAIT],
 ['Pending PO',0,0,0,r=>`Pending PO from ${r.customer} Side`],
@@ -95,14 +95,15 @@ const ST=[
 ['Not payroll invoices',0,0,0,()=>'Not related to Payroll Invoices'],
 ['Escalated to Mr. Sherif',0,0,0,()=>'Feedback with Mr. Sherif'],
 ['Within payment term',0,0,0,r=>`Payment term ${r.term} days as per client’s history`],
+['Date only',0,0,1,r=>DW(r.plan,'[date?]')],
 ['Extra note only',0,0,0,r=>r.extra||'[note?]']];
-const REM={plan:r=>'Planned to be paid on '+DW(r.plan,'[planned date?]'),follow:()=>PEND,wait:()=>WAIT,mgmt:()=>'Management Decision'};
+const REM={plan:r=>'Planned to be paid on '+D(r.plan,'[planned date?]'),follow:()=>PEND,wait:()=>WAIT,mgmt:()=>'Management Decision'};
 const REML={plan:'Planned to be paid on (date)',follow:'Following up – no date yet',wait:'Waiting for client’s response',mgmt:'Management decision'};
 function autoNote(r){const i=ST.findIndex(s=>s[0]===r.status);if(i<0)return '';let t=ST[i][4](r);
  if(i<3&&r.rem&&REM[r.rem])t+=', for the remaining '+REM[r.rem](r);
  if(r.extra&&r.status!=='Extra note only')t+=' | '+r.extra;
  return t}
-const MS=[['Transfer done',1,r=>`Transfer done on ${DW(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${DW(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${DW(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision'],['Extra note only',0,r=>r.medExtra||'[note?]'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`]];
+const MS=[['Transfer done',1,r=>`Transfer done on ${D(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${D(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${D(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision'],['Date only',1,r=>DW(r.medDate,'[date?]')],['Extra note only',0,r=>r.medExtra||'[note?]'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`]];
 function autoMed(r){const s=MS.find(x=>x[0]===r.medStatus);if(!s&&!r.medAmt)return '';
  return (s?s[2](r):'[feedback?]')+(r.medExtra&&r.medStatus!=='Extra note only'?' | '+r.medExtra:'')}
 // The owner can edit the generated text. The edit is used only while the automatic text it was based on has not changed.
@@ -141,8 +142,9 @@ async function api(method,path,body){
 const nk=s=>String(s||'').toLowerCase().replace(/\b(mr|mrs|ms|dr|eng)\b/g,' ').replace(/[^a-z؀-ۿ]/g,'').replace(/m[ou]h?a?m+[ae]d/g,'mohamed').replace(/ee|ie|ei|y/g,'i').replace(/(.)\1+/g,'$1');
 const typeOf=r=>(r.service||'').trim()||r.medType||(r.medMgr?'Payroll + Medical/Personnel':'Payroll');
 const isMedType=r=>{const s=(r.service||'').trim();return s?(/medical|personnel/i.test(s)&&!/payroll/i.test(s)):!!r.medType&&!r.medMgr};
-const exportNote=r=>isMedType(r)?(medNote(r)||note(r)):(note(r)||medNote(r));
-const exportStatus=r=>isMedType(r)&&r.medStatus?r.medStatus:(r.status||r.medStatus||'');
+const useMed=r=>isMedType(r)||!!r.medStatus;
+const exportNote=r=>useMed(r)?(medNote(r)||note(r)):(note(r)||medNote(r));
+const exportStatus=r=>useMed(r)&&r.medStatus?r.medStatus:(r.status||r.medStatus||'');
 const ctab={},fmt0=n=>n==null||n===''?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
 const MT=['Medical','Personnel'];
 function lwHtml(r){if(r.lwFile===false)return '';const has=r.lwNote||r.lwStatus;if(!has&&r.lwBal==null)return '';
@@ -276,14 +278,14 @@ async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
 function saveFile(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $('exp').onclick=()=>{const q=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v)&&isNaN(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
  const H=['NO','Customer','Type','Payment term','Balance','Payroll manager','Status','Notes','Medical/Personnel manager','Medical/Personnel portion','Medical/Personnel notes','Planned date'];
- const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,typeOf(r),r.term,r.balance,r.mgr,exportStatus(r),exportNote(r),r.medMgr||'',r.medAmt??'',isMedType(r)?'':medNote(r),(isMedType(r)?r.medDate:r.plan)?DW(isMedType(r)?r.medDate:r.plan):''].map(q).join(','));
+ const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,typeOf(r),r.term,r.balance,r.mgr,exportStatus(r),exportNote(r),r.medMgr||'',r.medAmt??'',useMed(r)?'':medNote(r),(useMed(r)?r.medDate:r.plan)||''].map(q).join(','));
  saveFile('Notes_Invoices_not_settled_'+(meta.date||'')+'.csv','﻿'+[H.map(q).join(',')].concat(L).join('\r\n'),'text/csv;charset=utf-8')};
 $('xl').onclick=async()=>{if(!window.ExcelJS){alert('Excel export needs internet access to load the ExcelJS library. Use the CSV button instead.');return}
 try{
 const rs=Object.keys(rows).sort().map(id=>rows[id]),wb=new ExcelJS.Workbook(),H=5;
 const ws=wb.addWorksheet('Outstanding',{views:[{state:'frozen',ySplit:H,showGridLines:false}],pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,printTitlesRow:'5:5'}});
 const F=o=>({name:'Arial',size:10,...o}),th={style:'thin',color:{argb:'FFBFC7D5'}},BD={top:th,left:th,bottom:th,right:th},FL=z=>({type:'pattern',pattern:'solid',fgColor:{argb:z}});
-const cols=[['NO',6],['Customer',38],['Type',22],['Payment term',12],['Balance (EGP)',16],['Payroll manager',18],['Status',26],['Notes',60],['Medical / Personnel manager',20],['Medical / Personnel portion (EGP)',17],['Medical / Personnel notes',50],['Planned date',30]],N=cols.length;
+const cols=[['NO',6],['Customer',38],['Type',22],['Payment term',12],['Balance (EGP)',16],['Payroll manager',18],['Status',26],['Notes',60],['Medical / Personnel manager',20],['Medical / Personnel portion (EGP)',17],['Medical / Personnel notes',50],['Planned date',14]],N=cols.length;
 cols.forEach((x,i)=>ws.getColumn(i+1).width=x[1]);
 const tot=rs.reduce((s,r)=>s+(+r.balance||0),0),dn=rs.filter(done).length;
 ws.mergeCells(1,1,1,N);let c=ws.getCell(1,1);c.value='Outstanding invoices – notes for Finance';c.font=F({size:16,bold:true,color:{argb:'FFFFFFFF'}});c.fill=FL('FF1F3864');c.alignment={vertical:'middle',indent:1};ws.getRow(1).height=30;
@@ -291,10 +293,10 @@ ws.mergeCells(2,1,2,N);c=ws.getCell(2,1);c.value='Report date: '+D(meta.date,'�
 ws.mergeCells(3,1,3,N);c=ws.getCell(3,1);c.value='Status colours:  green = payment received  ·  blue = date committed  ·  amber = no commitment yet  ·  grey = special case  ·  red = no feedback yet';c.font=F({italic:true,size:9,color:{argb:'FF667085'}});c.alignment={indent:1};
 cols.forEach((x,i)=>{c=ws.getCell(H,i+1);c.value=x[0];c.font=F({bold:true,color:{argb:'FFFFFFFF'}});c.fill=FL('FF1F3864');c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.border=BD});ws.getRow(H).height=34;
 const col=st=>{const i=ST.findIndex(s=>s[0]===st);return i<0?(MS.some(s=>s[0]===st)?'FFFFF2CC':'FFFCE4D6'):i<3?'FFE2EFDA':(st==='Planned payment date'||st==='Within payment term')?'FFDDEBF7':i<7?'FFFFF2CC':'FFEDEDED'};
-rs.forEach((r,k)=>{const n=H+1+k,row=ws.getRow(n),pn=exportNote(r),mn=isMedType(r)?'':medNote(r),es=exportStatus(r),pv=isMedType(r)?r.medDate:r.plan,pd=pv?String(pv).split('-').map(Number):null;
+rs.forEach((r,k)=>{const n=H+1+k,row=ws.getRow(n),pn=exportNote(r),mn=useMed(r)?'':medNote(r),es=exportStatus(r),pv=useMed(r)?r.medDate:r.plan,pd=pv?String(pv).split('-').map(Number):null;
  const v=[r.no,r.customer,typeOf(r),(r.term===''||isNaN(+r.term))?r.term:+r.term,+r.balance||0,r.mgr||'',es||(mn?'':'No feedback yet'),pn,r.medMgr||'',r.medAmt===''||r.medAmt==null?'':+r.medAmt,mn,pd?new Date(Date.UTC(pd[0],pd[1]-1,pd[2])):''];
  v.forEach((x,i)=>{const z=row.getCell(i+1);z.value=x;z.font=F();z.border=BD;z.alignment={vertical:'top',wrapText:i===1||i===2||i===7||i===10,...((i===0||i===3||i===11)?{horizontal:'center'}:{})};if(k%2)z.fill=FL('FFF7F9FC')});
- row.getCell(5).numFmt='#,##0';row.getCell(10).numFmt='#,##0';row.getCell(12).numFmt='dddd, d mmmm yyyy';
+ row.getCell(5).numFmt='#,##0';row.getCell(10).numFmt='#,##0';row.getCell(12).numFmt='d mmm yyyy';
  const sc=row.getCell(7);sc.fill=FL(col(es));sc.font=F({bold:true});
  row.height=Math.max(18,13*Math.max(Math.ceil(pn.length/62),Math.ceil(mn.length/52),Math.ceil((r.customer||'').length/40),1)+5)});
 const e=H+1+rs.length;ws.getCell(e,2).value='Total outstanding';ws.getCell(e,5).value={formula:`SUM(E${H+1}:E${e-1})`,result:tot};
