@@ -221,7 +221,10 @@ function mgrEditCancel(btn){const box=btn.closest('.meta');box.innerHTML=box.dat
 async function mgrEditSave(btn){const el=btn.closest('.card'),box=el.querySelector('.meta'),m=box.querySelector('[data-mg=mgr]').value,d=box.querySelector('[data-mg=med]').value,msg=box.querySelector('[data-mgmsg]');
  if(!m&&!d){msg.textContent='Choose at least one manager.';return}
  btn.disabled=true;msg.textContent='Saving…';
- try{await api('POST','/api/manager',{id:el.id,mgr:m,med:d});await sync(true)}catch(x){msg.textContent=x.message;btn.disabled=false;return}
+ try{await api('POST','/api/manager',{id:el.id,mgr:m,med:d});await sync(true);
+  // The choice is also applied to last week's list on the server, so re-run the automatic comparison: the company is matched
+  // under its new manager (one line). A comparison made from an uploaded Excel file is left as it is.
+  const src=meta&&meta.lw&&meta.lw.file;if(!src||/^Previous list/.test(src))await compareWithPrevious().catch(()=>{})}catch(x){msg.textContent=x.message;btn.disabled=false;return}
  const nr=rows[el.id];if(!nr){el.remove();stats();return}
  if(drafts[el.id])drafts[el.id]={...drafts[el.id],mgr:nr.mgr,medMgr:nr.medMgr};
  const r=drafts[el.id]||nr;el.innerHTML=cardHtml(r);paint(el,r);if(drafts[el.id])markDirty(el,true);stats()}
