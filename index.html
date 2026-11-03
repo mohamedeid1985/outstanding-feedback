@@ -271,7 +271,11 @@ $('chsave').onclick=async()=>{const a=$('cn1').value,b=$('cn2').value;$('chm').t
  if(weakCode(a)){$('chm').textContent='This code is too easy to guess. Use at least 4 different letters or digits and avoid sequences such as 12345678.';return}
  try{const {error}=await sb.functions.invoke('change-code',{body:{code:a}});
   if(error){let msg=error.message;try{msg=(await error.context.json()).error||msg}catch(e){}throw new Error(msg)}
-  await sb.auth.refreshSession();$('chg').classList.add('hid');$('cn1').value=$('cn2').value='';await boot()}catch(x){$('chm').textContent=x.message}};
+  // Changing the code signs every session out (this one too), so sign in again with the new code instead of refreshing.
+  const {error:e2}=await sb.auth.signInWithPassword({email:String(me&&me.email||'').trim().toLowerCase(),password:normCode(a)});
+  $('chg').classList.add('hid');$('cn1').value=$('cn2').value='';
+  if(e2){showLogin();return}
+  await boot()}catch(x){$('chm').textContent=x.message}};
 async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
  if(me.mustChange){showChange(true);return}
  $('login').classList.add('hid');$('me').textContent=me.email;isOwnerUI=!!me.owner;$('tabs').classList.toggle('hid',!me.owner);showTab('fb');
