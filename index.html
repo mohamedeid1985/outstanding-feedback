@@ -43,7 +43,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <div class="bar"><label style="margin:0">I’m <select id="who"></select></label>
 <label style="margin:0"><input type="checkbox" id="pend"> pending only</label>
 <div class="prog"><i id="pb"></i></div><span id="pt" class="sm"></span>
-<span id="me" class="sm"></span> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
+<span id="me" class="sm"></span> <button id="ffb" class="alt hid" type="button">&#128193; Files folder</button> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
 <main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="perm">Permissions</span></div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="bar" style="margin:8px 0"><input id="q" type="search" placeholder="Search company…" autocomplete="off"></div>
@@ -58,6 +58,8 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <p><input type="file" id="lwf" accept=".xlsx" class="hid"><button id="lwb" type="button">Upload last week’s report</button> <span id="lwm" class="sm"></span></p>
 <p class="sm"><b>Backups (Excel).</b> Press Backup now. The first time you choose the folder; every time after that you are asked whether to keep the same folder or choose another one. The backup is an Excel file saved in a folder named by the upload date, for example “outstanding 27-10-2026”. It is also saved automatically around Load week when a folder has been chosen (Chrome or Edge). The database also keeps a daily snapshot for 30 days.</p>
 <p><button id="bkn" type="button">Backup now</button> <span id="bkm" class="sm"></span></p>
+<p class="sm"><b>Files folder.</b> Paste the link of the online folder (OneDrive, SharePoint or Google Drive) where the reports and backups are kept. The “Files folder” button at the top then opens it in one click. Tip: choose the same folder, synced to your computer, as the Backup folder above so everything lands in one place.</p>
+<p><input id="ffu" type="url" placeholder="https://…" style="width:70%"> <button id="ffs" class="alt" type="button">Save</button> <span id="ffm" class="sm"></span></p>
 <p class="sm"><b>“Ready for review” email (optional).</b> Paste the Power Automate flow URL. Leave it empty to see only the banner.</p>
 <p><input id="whu" type="url" placeholder="https://…" style="width:70%"> <button id="whs" class="alt" type="button">Save</button> <span id="whm" class="sm"></span></p></details>
 <div id="list"><p class="sm">Loading…</p></div>
@@ -279,6 +281,7 @@ $('chsave').onclick=async()=>{const a=$('cn1').value,b=$('cn2').value;$('chm').t
 async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
  if(me.mustChange){showChange(true);return}
  $('login').classList.add('hid');$('me').textContent=me.email;isOwnerUI=!!me.owner;$('tabs').classList.toggle('hid',!me.owner);showTab('fb');
+ $('ffb').classList.toggle('hid',!me.owner);$('ffu').value=me.owner?(me.filesUrl||''):'';
  if(me.owner){$('whu').placeholder=me.webhookSet?'(saved – paste a new URL to replace it)':'https://…';rpc('api_set_settings',{p_webhook:null,p_app_url:location.origin+location.pathname}).catch(()=>{})}
  await sync(true);if(!poll)poll=setInterval(()=>{if(me)sync(false)},5000)}
 
@@ -410,6 +413,13 @@ $('bkn').onclick=async()=>{$('bkm').textContent='';
   if(c==='new'||!h)h=await pickFolder();
   if(await h.queryPermission({mode:'readwrite'})!=='granted'&&await h.requestPermission({mode:'readwrite'})!=='granted'){$('bkm').textContent='No permission to write in that folder.';return}
   $('bkm').textContent='…';$('bkm').textContent='Backup '+await backupNow(h)}catch(x){$('bkm').textContent=x&&x.name==='AbortError'?'':'Failed: '+x.message}};
+// Files folder: the owner saves the online folder link once; the header button opens it in a new tab.
+const okUrl=u=>/^https:\/\/[^\s<>"']+$/.test(u||'');
+$('ffs').onclick=async()=>{const v=$('ffu').value.trim();$('ffm').textContent='';
+ if(v&&!okUrl(v)){$('ffm').textContent='The link must start with https:// and contain no spaces.';return}
+ try{await rpc('api_set_files_url',{p_url:v});me.filesUrl=v;$('ffm').textContent=v?'Saved.':'Cleared.'}catch(x){$('ffm').textContent=x.message}};
+$('ffb').onclick=()=>{if(me&&okUrl(me.filesUrl)){window.open(me.filesUrl,'_blank','noopener,noreferrer')}
+ else{$('own').open=true;$('ffu').focus();$('ffm').textContent='Paste the folder link here and press Save.'}};
 $('whs').onclick=async()=>{const v=$('whu').value.trim();$('whm').textContent='';try{await rpc('api_set_settings',{p_webhook:v,p_app_url:null});$('whm').textContent=v?'Saved.':'Cleared.';$('whu').value='';$('whu').placeholder=v?'(saved – paste a new URL to replace it)':'https://…'}catch(x){$('whm').textContent=x.message}};
 (async()=>{try{const h=await idbGet('dir');if(h)$('bkm').textContent='Folder: '+h.name}catch(x){}})();
 
