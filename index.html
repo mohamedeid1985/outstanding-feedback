@@ -140,6 +140,7 @@ async function api(method,path,body){
  if(p==='/api/load')return rpc('api_load',{p_rows:body.rows});
  if(p==='/api/lastweek')return rpc('api_set_lastweek',{p_items:body.items,p_info:body.info});
  if(p==='/api/prev')return rpc('api_get_prev');
+ if(p==='/api/manager')return rpc('api_set_manager',{p_id:body.id,p_mgr:body.mgr,p_med:body.med});
  if(p==='/api/codes'){const {data,error}=await sb.functions.invoke('set-code',{body:{email:body.email,code:body.code||''}});
   if(error){let msg=error.message;try{msg=(await error.context.json()).error||msg}catch(e){}throw fail(msg,400)}return data}
  throw fail('not found',404)}
@@ -161,7 +162,7 @@ function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}
  const mt=MT.map(s=>`<option${r.medType===s?' selected':''}>${s}</option>`).join('');
  const tb=ctab[r.id]==='med'?'med':'fin',medOn=!!(r.medAmt||r.medStatus||r.medExtra);
  return `<div class="top"><span class="name">${esc(r.customer)}${r.lwFile===false?'<span class="badge">New</span>':''}</span><span class="bal">${(Number(r.balance)||0).toLocaleString('en-US',{maximumFractionDigits:0})} EGP</span></div>
-<div class="meta">Term: ${esc(r.term)} · ${esc(r.mgr)}${r.medMgr?' · Medical/Personnel: '+esc(r.medMgr):''}</div>${lwHtml(r)}
+<div class="meta">Term: ${esc(r.term)} · ${esc(r.mgr)}${r.medMgr?' · Medical/Personnel: '+esc(r.medMgr):''}${isOwnerUI?' <button type="button" class="alt" data-mgedit="1" style="padding:2px 10px;font-size:12px">Edit</button>':''}</div>${lwHtml(r)}
 <div class="ctabs"><button type="button" data-ct="fin" class="${tb==='fin'?'on':''}">Finance feedback</button><button type="button" data-ct="med" class="${tb==='med'?'on':''}">Medical / Personnel feedback${medOn?' <b>•</b>':''}</button></div>
 <div data-pane="fin"${tb==='fin'?'':' class="hid"'}><div class="grid"><div><label>Status</label><select data-k="status"><option value="">— choose —</option>${o}</select></div>
 <div data-f="date"><label>Transfer / cheque date</label><span class="dw"><input type="date" data-k="date" value="${esc(r.date)}"><b class="wd"></b></span></div>
@@ -202,16 +203,32 @@ function stats(){const all=Object.values(rows),mine=all.filter(r=>!who||r.mgr===
 const focusedCard=()=>document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.card');
 
 function markDirty(el,on){el.classList.toggle('dirty',on);if(on)el.querySelector('.sv').textContent='Unsaved changes – press Save'}
-$('list').addEventListener('input',e=>{if(e.target.dataset.ne)return;const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true)});
+$('list').addEventListener('input',e=>{if(e.target.dataset.ne||e.target.dataset.mg)return;const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true)});
 function noteEditOpen(btn){const k=btn.dataset.edit,el=btn.closest('.card'),r=drafts[el.id]||rows[el.id],box=el.querySelector('[data-n="'+k+'"]');if(box.querySelector('textarea'))return;
  box.innerHTML='<textarea data-ne="'+k+'" style="width:100%;height:80px"></textarea><div style="margin-top:6px;display:flex;gap:8px"><button type="button" class="alt" data-ndone="'+k+'">Done</button><button type="button" class="alt" data-nreset="'+k+'">Back to automatic text</button></div>';
  const ta=box.querySelector('textarea');ta.value=k==='p'?note(r):medNote(r);box.parentNode.classList.remove('hid');ta.focus()}
 function noteEditClose(btn){const reset=!!btn.dataset.nreset,k=btn.dataset.ndone||btn.dataset.nreset,el=btn.closest('.card'),r={...(drafts[el.id]||rows[el.id])},box=el.querySelector('[data-n="'+k+'"]'),ta=box.querySelector('textarea'),auto=k==='p'?autoNote(r):autoMed(r),text=reset?'':ta.value.trim(),ek=k==='p'?'noteEdit':'medNoteEdit',bk=k==='p'?'noteBase':'medNoteBase';
  if(!text||text===auto){r[ek]='';r[bk]=''}else{r[ek]=text;r[bk]=auto}
  box.innerHTML='';drafts[el.id]=r;paint(el,r);markDirty(el,true)}
+// Owner only: change the manager shown next to a company by picking from the names in the Permissions tab.
+async function mgrEditOpen(btn){const el=btn.closest('.card'),r=rows[el.id],box=el.querySelector('.meta');if(!r||box.querySelector('select'))return;
+ let names=[];try{names=((await api('GET','/api/users')).rows||[]).map(x=>x.supervisor).filter(Boolean)}catch(x){alert(x.message);return}
+ const opts=cur=>{const l=[];[...names,cur].forEach(n=>{n=String(n||'').trim();if(n&&!l.some(m=>nk(m)===nk(n)))l.push(n)});
+  return '<option value="">—</option>'+l.map(n=>`<option${cur&&nk(n)===nk(cur)?' selected':''}>${esc(n)}</option>`).join('')};
+ box.dataset.old=box.innerHTML;
+ box.innerHTML=`Manager <select data-mg="mgr">${opts(r.mgr)}</select> Medical/Personnel <select data-mg="med">${opts(r.medMgr)}</select> <button type="button" data-mgsave="1" style="padding:2px 10px;font-size:12px">Save</button> <button type="button" class="alt" data-mgcancel="1" style="padding:2px 10px;font-size:12px">Cancel</button> <span class="sm" data-mgmsg="1"></span>`}
+function mgrEditCancel(btn){const box=btn.closest('.meta');box.innerHTML=box.dataset.old||'';delete box.dataset.old}
+async function mgrEditSave(btn){const el=btn.closest('.card'),box=el.querySelector('.meta'),m=box.querySelector('[data-mg=mgr]').value,d=box.querySelector('[data-mg=med]').value,msg=box.querySelector('[data-mgmsg]');
+ if(!m&&!d){msg.textContent='Choose at least one manager.';return}
+ btn.disabled=true;msg.textContent='Saving…';
+ try{await api('POST','/api/manager',{id:el.id,mgr:m,med:d});await sync(true)}catch(x){msg.textContent=x.message;btn.disabled=false;return}
+ const nr=rows[el.id];if(!nr){el.remove();stats();return}
+ if(drafts[el.id])drafts[el.id]={...drafts[el.id],mgr:nr.mgr,medMgr:nr.medMgr};
+ const r=drafts[el.id]||nr;el.innerHTML=cardHtml(r);paint(el,r);if(drafts[el.id])markDirty(el,true);stats()}
 $('list').addEventListener('click',async e=>{const t=e.target;
  if(t.dataset.ct){const el=t.closest('.card');ctab[el.id]=t.dataset.ct;el.querySelectorAll('[data-pane]').forEach(p=>p.classList.toggle('hid',p.dataset.pane!==t.dataset.ct));el.querySelectorAll('[data-ct]').forEach(b=>b.classList.toggle('on',b===t));return}
  if(t.dataset.edit){noteEditOpen(t);return}if(t.dataset.ndone||t.dataset.nreset){noteEditClose(t);return}
+ if(t.dataset.mgedit){mgrEditOpen(t);return}if(t.dataset.mgsave){mgrEditSave(t);return}if(t.dataset.mgcancel){mgrEditCancel(t);return}
  const b=e.target.closest('[data-save]');if(!b)return;const el=b.closest('.card'),id=el.id,r=drafts[id]||rows[id];
  const d={};KEYS.forEach(k=>d[k]=r[k]);d.done=!!done(r);b.disabled=true;
  try{const s=await api('PUT','/api/row/'+id,d);rows[id]=s;delete drafts[id];markDirty(el,false);
