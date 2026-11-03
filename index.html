@@ -64,7 +64,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <div id="list"><p class="sm">Loading…</p></div>
 <section id="permv" class="card hid" style="border-left-color:var(--acc)"><div class="name">Permissions</div>
 <p class="sm">Who can sign in. The supervisor name must match the manager name in the report. The delegate email has the same access as the supervisor; leave it empty if there is none. The owner always has access.</p>
-<table id="permt"><thead><tr><th>Supervisor</th><th>Email</th><th>Delegate Team Member</th><th></th></tr></thead><tbody></tbody></table>
+<table id="permt"><thead><tr><th>Supervisor</th><th>Email</th><th>Delegate Team Member</th><th></th><th></th></tr></thead><tbody></tbody></table>
 <p><button id="padd" class="alt" type="button">+ Add supervisor</button> <button id="us" type="button">Save permissions</button> <span id="um" class="sm"></span></p>
 <div class="name" style="margin-top:14px">Access codes</div>
 <p class="sm">Each person signs in with their email and a personal access code. Press “New code” for a random code, or type your own (at least 8 letters or digits, any case) and press Set. Send the code to that person privately. A random code is shown only once; a new code replaces the old one and signs that person out. Save the table first when you add someone.</p>
@@ -146,10 +146,14 @@ async function api(method,path,body){
  throw fail('not found',404)}
 const nk=s=>String(s||'').toLowerCase().replace(/\b(mr|mrs|ms|dr|eng)\b/g,' ').replace(/[^a-z؀-ۿ]/g,'').replace(/m[ou]h?a?m+[ae]d/g,'mohamed').replace(/ee|ie|ei|y/g,'i').replace(/(.)\1+/g,'$1');
 const typeOf=r=>(r.service||'').trim()||r.medType||(r.medMgr?'Payroll + Medical/Personnel':'Payroll');
-const isMedType=r=>{const s=(r.service||'').trim();return s?(/medical|personnel/i.test(s)&&!/payroll/i.test(s)):!!r.medType&&!r.medMgr};
-const useMed=r=>isMedType(r)||!!r.medStatus;
-const exportNote=r=>useMed(r)?(medNote(r)||note(r)):(note(r)||medNote(r));
-const exportStatus=r=>useMed(r)&&r.medStatus?r.medStatus:(r.status||r.medStatus||'');
+// What the downloaded sheet shows. Nothing that was written is dropped, and it does not depend on the manager names:
+//  - Finance feedback (if any) is always in Status / Notes / Planned date.
+//  - Medical/Personnel feedback is always in its own "Medical / Personnel notes" column when the line also has Finance feedback.
+//  - A line with only Medical/Personnel feedback shows it in Status / Notes / Planned date (so it is not repeated).
+const exportNote=r=>note(r)||medNote(r);
+const exportMedNote=r=>note(r)?medNote(r):'';
+const exportStatus=r=>r.status||r.medStatus||'';
+const exportPlan=r=>note(r)?(r.plan||''):(r.medDate||r.plan||'');
 const ctab={},fmt0=n=>n==null||n===''?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
 const MT=['Medical','Personnel'];
 function lwHtml(r){if(r.lwFile===false)return '';const has=r.lwNote||r.lwStatus;if(!has&&r.lwBal==null)return '';
@@ -263,7 +267,7 @@ $('lgo').onclick=async()=>{$('lm2').textContent='';
 $('le').onkeydown=e=>{if(e.key==='Enter')$('lc').focus()};$('lc').onkeydown=e=>{if(e.key==='Enter')$('lgo').click()};
 $('olog').onclick=async()=>{try{await api('POST','/api/logout')}catch(x){}showLogin()};
 function permRow(r){const tr=document.createElement('tr');
- tr.innerHTML=`<td><input data-p="supervisor" value="${esc(r.supervisor)}"></td><td><input data-p="email" type="email" value="${esc(r.email)}"></td><td><input data-p="delegate" type="email" value="${esc(r.delegate)}"></td><td><button class="alt" type="button" data-del="1" aria-label="Remove row">×</button></td>`;
+ tr.innerHTML=`<td><input data-p="supervisor" value="${esc(r.supervisor)}"></td><td><input data-p="email" type="email" value="${esc(r.email)}"></td><td><input data-p="delegate" type="email" value="${esc(r.delegate)}"></td><td><button class="alt" type="button" data-send="1" title="Download the app as an HTML file and open an email to this person">Send app</button></td><td><button class="alt" type="button" data-del="1" aria-label="Remove row">×</button></td>`;
  $('permt').tBodies[0].appendChild(tr)}
 function codeRows(list){$('codet').tBodies[0].innerHTML=list.map(x=>`<tr><td>${esc(x.email)}</td><td class="sm">${x.hasCode?'code set':'no code yet'}</td><td><button class="alt" type="button" data-code="${esc(x.email)}">New code</button></td><td><input data-ci="${esc(x.email)}" placeholder="or type your own code" size="18" autocomplete="off"> <button class="alt" type="button" data-set="${esc(x.email)}">Set</button> <b data-shown="${esc(x.email)}"></b></td></tr>`).join('')}
 async function loadPerm(){const r=await api('GET','/api/users');$('permt').tBodies[0].innerHTML='';(r.rows.length?r.rows:[{}]).forEach(permRow);codeRows(r.codes||[])}
@@ -273,7 +277,20 @@ $('codet').onclick=async e=>{const em=e.target.dataset.code||e.target.dataset.se
  try{const r=await api('POST','/api/codes',{email:em,code:mine});const b=[...document.querySelectorAll('[data-shown]')].find(x=>x.dataset.shown===em);b.textContent=r.code;e.target.closest('tr').children[1].textContent='code set';[...document.querySelectorAll('[data-ci]')].find(x=>x.dataset.ci===em).value='';
   const sel=getSelection(),rg=document.createRange();rg.selectNodeContents(b);sel.removeAllRanges();sel.addRange(rg)}catch(x){alert(x.message)}};
 $('padd').onclick=()=>permRow({});
-$('permt').onclick=e=>{if(e.target.dataset.del)e.target.closest('tr').remove()};
+const okEmail=s=>/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(s||'');
+// Send the app to one supervisor: download the page as an HTML file (their email already filled in) and open an email draft
+// addressed to them. Yousra attaches the downloaded file and presses Send. The access code is never put in the email.
+async function sendApp(btn){const tr=btn.closest('tr'),q=k=>tr.querySelector('[data-p='+k+']').value.trim(),name=q('supervisor'),em=q('email'),dl=q('delegate');
+ if(!okEmail(em)){$('um').textContent='Write this person’s email first.';return}
+ try{const html=await (await fetch(location.href.split('#')[0].split('?')[0],{cache:'no-store'})).text();
+  saveFile('Outstanding_feedback.html',html.replace('</head>','<meta name="prefill-email" content="'+esc(em)+'">\n</head>'),'text/html;charset=utf-8');
+  const link=location.protocol==='https:'?location.origin+location.pathname:'';
+  const body='Hello'+(name?' '+name:'')+',\r\n\r\nPlease add your feedback on the outstanding invoices of your companies.\r\n\r\nHow to open it:\r\n1) Open the attached file "Outstanding_feedback.html"'+(link?' (or use this link: '+link+')':'')+'.\r\n2) Sign in with your work email ('+em+') and your personal access code.\r\n\r\nYour access code will be sent to you separately.\r\n\r\nThank you';
+  const a=document.createElement('a');a.href='mailto:'+em+'?'+(okEmail(dl)?'cc='+encodeURIComponent(dl)+'&':'')+'subject='+encodeURIComponent('Outstanding invoices – please add your feedback')+'&body='+encodeURIComponent(body);
+  document.body.appendChild(a);a.click();a.remove();
+  $('um').textContent='The file Outstanding_feedback.html was downloaded. Attach it to the email that opened, then press Send.'}
+ catch(x){$('um').textContent='Could not prepare the file: '+x.message}}
+$('permt').onclick=e=>{if(e.target.dataset.del)e.target.closest('tr').remove();if(e.target.dataset.send)sendApp(e.target)};
 $('us').onclick=async()=>{$('um').textContent='';
  const rows=[...$('permt').tBodies[0].rows].map(tr=>({supervisor:tr.querySelector('[data-p=supervisor]').value,email:tr.querySelector('[data-p=email]').value,delegate:tr.querySelector('[data-p=delegate]').value}));
  try{await api('PUT','/api/users',{rows});await loadPerm();$('um').textContent='Saved.'}catch(x){$('um').textContent='Failed: '+x.message}};
@@ -311,7 +328,7 @@ async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
 function saveFile(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $('exp').onclick=()=>{const q=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v)&&isNaN(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
  const H=['NO','Customer','Type','Payment term','Balance','Payroll manager','Status','Notes','Medical/Personnel manager','Medical/Personnel portion','Medical/Personnel notes','Planned date'];
- const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,typeOf(r),r.term,r.balance,r.mgr,exportStatus(r),exportNote(r),r.medMgr||'',r.medAmt??'',useMed(r)?'':medNote(r),(useMed(r)?r.medDate:r.plan)||''].map(q).join(','));
+ const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,typeOf(r),r.term,r.balance,r.mgr,exportStatus(r),exportNote(r),r.medMgr||'',r.medAmt??'',exportMedNote(r),exportPlan(r)].map(q).join(','));
  saveFile('Notes_Invoices_not_settled_'+(meta.date||'')+'.csv','﻿'+[H.map(q).join(',')].concat(L).join('\r\n'),'text/csv;charset=utf-8')};
 $('xl').onclick=async()=>{if(!window.ExcelJS){alert('Excel export needs internet access to load the ExcelJS library. Use the CSV button instead.');return}
 try{
@@ -326,7 +343,7 @@ ws.mergeCells(2,1,2,N);c=ws.getCell(2,1);c.value='Report date: '+D(meta.date,'�
 ws.mergeCells(3,1,3,N);c=ws.getCell(3,1);c.value='Status colours:  green = payment received  ·  blue = date committed  ·  amber = no commitment yet  ·  grey = special case  ·  red = no feedback yet';c.font=F({italic:true,size:9,color:{argb:'FF667085'}});c.alignment={indent:1};
 cols.forEach((x,i)=>{c=ws.getCell(H,i+1);c.value=x[0];c.font=F({bold:true,color:{argb:'FFFFFFFF'}});c.fill=FL('FF1F3864');c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.border=BD});ws.getRow(H).height=34;
 const col=st=>{const i=ST.findIndex(s=>s[0]===st);return i<0?(MS.some(s=>s[0]===st)?'FFFFF2CC':'FFFCE4D6'):i<3?'FFE2EFDA':(st==='Planned payment date'||st==='Within payment term')?'FFDDEBF7':i<7?'FFFFF2CC':'FFEDEDED'};
-rs.forEach((r,k)=>{const n=H+1+k,row=ws.getRow(n),pn=exportNote(r),mn=useMed(r)?'':medNote(r),es=exportStatus(r),pv=useMed(r)?r.medDate:r.plan,pd=pv?String(pv).split('-').map(Number):null;
+rs.forEach((r,k)=>{const n=H+1+k,row=ws.getRow(n),pn=exportNote(r),mn=exportMedNote(r),es=exportStatus(r),pv=exportPlan(r),pd=pv?String(pv).split('-').map(Number):null;
  const v=[r.no,r.customer,typeOf(r),(r.term===''||isNaN(+r.term))?r.term:+r.term,+r.balance||0,r.mgr||'',es||(mn?'':'No feedback yet'),pn,r.medMgr||'',r.medAmt===''||r.medAmt==null?'':+r.medAmt,mn,pd?new Date(Date.UTC(pd[0],pd[1]-1,pd[2])):''];
  v.forEach((x,i)=>{const z=row.getCell(i+1);z.value=x;z.font=F();z.border=BD;z.alignment={vertical:'top',wrapText:i===1||i===2||i===7||i===10,...((i===0||i===3||i===11)?{horizontal:'center'}:{})};if(k%2)z.fill=FL('FFF7F9FC')});
  row.getCell(5).numFmt='#,##0';row.getCell(10).numFmt='#,##0';row.getCell(12).numFmt='d mmm yyyy';
@@ -467,6 +484,7 @@ $('ffb').onclick=()=>{if(me&&okUrl(me.filesUrl)){window.open(me.filesUrl,'_blank
 $('whs').onclick=async()=>{const v=$('whu').value.trim();$('whm').textContent='';try{await rpc('api_set_settings',{p_webhook:v,p_app_url:null});$('whm').textContent=v?'Saved.':'Cleared.';$('whu').value='';$('whu').placeholder=v?'(saved – paste a new URL to replace it)':'https://…'}catch(x){$('whm').textContent=x.message}};
 (async()=>{try{const h=await idbGet('dir');if(h)$('bkm').textContent='Folder: '+h.name}catch(x){}})();
 
+try{const pe=document.querySelector('meta[name=prefill-email]');if(pe&&pe.content&&!$('le').value)$('le').value=pe.content}catch(x){}
 (async()=>{try{who=localStorage.getItem('who')||''}catch(x){}
  await boot()})();
 </script></body></html>
