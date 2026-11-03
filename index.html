@@ -318,7 +318,7 @@ for(let i=1;i<=N;i++){c=ws.getCell(e,i);c.font=F({bold:true});c.fill=FL('FFDDEBF
 ws.getCell(e,10).value={formula:`SUM(J${H+1}:J${e-1})`};ws.getCell(e,5).numFmt='#,##0';ws.getCell(e,10).numFmt='#,##0';
 c=ws.getCell(e+2,2);c.value='Prepared from the invoice feedback collector';c.font=F({italic:true,size:9,color:{argb:'FF667085'}});
 ws.autoFilter={from:{row:H,column:1},to:{row:H+rs.length,column:N}};
-addCompareSheet(wb);
+addCompareSheet(wb,true);
 saveFile('Outstanding_notes_for_Finance_'+(meta.date||'')+'.xlsx',await wb.xlsx.writeBuffer(),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 }catch(x){alert('Excel export failed: '+(x.message||x))}};
 
@@ -385,12 +385,17 @@ $('lwf').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('lwm').text
 function lwData(){const R=Object.keys(rows).sort().map(id=>rows[id]).filter(r=>r.lwFile===true||r.lwFile===false);
  return R.map(r=>{const d=r.lwFile?(+r.balance||0)-(+r.lwBal||0):null,res=!r.lwFile?'New':Math.abs(d)<0.5?'Unchanged':d>0?'Increased':'Decreased';return{r,d,res}})}
 // The "Comparison" sheet: one line per company + manager, with last week's balance and feedback. Also added to the Finance report.
-function addCompareSheet(wb){const D2=lwData(),cl=(meta&&meta.lw&&meta.lw.cleared)||[];if(!D2.length&&!cl.length)return false;
+// plain=true (used in the Finance report): only the two amounts side by side and last week's feedback, no calculated columns.
+// A blank amount means the company was not in that week's list.
+function addCompareSheet(wb,plain){const D2=lwData(),cl=(meta&&meta.lw&&meta.lw.cleared)||[];if(!D2.length&&!cl.length)return false;
  const ws=wb.addWorksheet('Comparison',{views:[{state:'frozen',ySplit:1}]});
- ws.columns=[{header:'Company',width:38},{header:'Type',width:22},{header:'Manager',width:20},{header:'Last week',width:16},{header:'Now',width:16},{header:'Difference',width:16},{header:'Result',width:14},{header:'Last week feedback',width:60}];
- D2.forEach(x=>{const r=x.r;ws.addRow([r.customer,typeOf(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,x.d==null?'':x.d,x.res,r.lwFile?(r.lwNote||r.lwStatus||''):''])});
- cl.forEach(c=>ws.addRow([c.customer,c.type,c.mgr||'',+c.bal||0,0,-(+c.bal||0),'Cleared',c.note||'']));
- const h=ws.getRow(1);h.font={bold:true,color:{argb:'FFFFFFFF'}};h.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});[4,5,6].forEach(i=>ws.getColumn(i).numFmt='#,##0');
+ ws.columns=plain?[{header:'Company',width:38},{header:'Type',width:22},{header:'Manager',width:20},{header:'Last week amount',width:18},{header:'This week amount',width:18},{header:'Last week feedback',width:60}]
+  :[{header:'Company',width:38},{header:'Type',width:22},{header:'Manager',width:20},{header:'Last week',width:16},{header:'Now',width:16},{header:'Difference',width:16},{header:'Result',width:14},{header:'Last week feedback',width:60}];
+ D2.forEach(x=>{const r=x.r,fb=r.lwFile?(r.lwNote||r.lwStatus||''):'';
+  ws.addRow(plain?[r.customer,typeOf(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,fb]
+   :[r.customer,typeOf(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,x.d==null?'':x.d,x.res,fb])});
+ cl.forEach(c=>ws.addRow(plain?[c.customer,c.type,c.mgr||'',+c.bal||0,'',c.note||'']:[c.customer,c.type,c.mgr||'',+c.bal||0,0,-(+c.bal||0),'Cleared',c.note||'']));
+ const h=ws.getRow(1);h.font={bold:true,color:{argb:'FFFFFFFF'}};h.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});(plain?[4,5]:[4,5,6]).forEach(i=>ws.getColumn(i).numFmt='#,##0');
  return true}
 function lwSummary(){const box=$('lwsum'),L=meta&&meta.lw;if(!me||!me.owner||!L||!L.file){box.classList.add('hid');return}
  const D2=lwData(),cnt={};D2.forEach(x=>cnt[x.res]=(cnt[x.res]||0)+1);const cur=Object.values(rows).reduce((s,r)=>s+(+r.balance||0),0),df=cur-(L.prevTotal||0),cl=L.cleared||[];
