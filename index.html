@@ -54,8 +54,8 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <p class="sm"><b>Load a new week.</b> In Excel copy columns NO → Medical/Personnel Manager from the new report and paste here (an optional 7th column “Service type” can say Medical, Personnel…). Rows not in the paste are removed.</p>
 <textarea id="ta" placeholder="NO&#9;Customer&#9;Payment term&#9;Balance&#9;Payroll manager&#9;Medical/Personnel manager&#9;Service type (optional)"></textarea>
 <p><button id="ld" type="button">Load week</button> <span id="lm" class="sm"></span></p>
-<p class="sm"><b>Last week’s report.</b> Upload last week’s Finance report (Excel, with the feedback). It is matched by company name and Type, and the last-week feedback and balance appear inside each company card.</p>
-<p><input type="file" id="lwf" accept=".xlsx" class="hid"><button id="lwb" type="button">Upload last week’s report</button> <span id="lwm" class="sm"></span></p>
+<p class="sm"><b>Comparison with last week (automatic).</b> Every time you press Load week, the previous list kept by the app is compared with the new one. A line is the same only when both the <b>company name and the manager responsible for it</b> are the same. The result shows inside each company card, in the summary above, and as a “Comparison” sheet in the Finance report you download. You do not need to upload anything.</p>
+<p class="sm">Optional: <button id="lwa" class="alt" type="button">Compare with last week now</button> <input type="file" id="lwf" accept=".xlsx" class="hid"><button id="lwb" class="alt" type="button">Use an Excel file instead</button> <span id="lwm" class="sm"></span></p>
 <p class="sm"><b>Backups (Excel).</b> Press Backup now. The first time you choose the folder; every time after that you are asked whether to keep the same folder or choose another one. The backup is an Excel file saved in a folder named by the upload date, for example “outstanding 27-10-2026”. It is also saved automatically around Load week when a folder has been chosen (Chrome or Edge). The database also keeps a daily snapshot for 30 days.</p>
 <p><button id="bkn" type="button">Backup now</button> <span id="bkm" class="sm"></span></p>
 <p class="sm"><b>Files folder.</b> Paste the link of the online folder (OneDrive, SharePoint or Google Drive) where the reports and backups are kept. The “Files folder” button at the top then opens it in one click. Tip: choose the same folder, synced to your computer, as the Backup folder above so everything lands in one place.</p>
@@ -140,6 +140,7 @@ async function api(method,path,body){
  if(p==='/api/users')return rpc('api_save_perm',{p_rows:body.rows});
  if(p==='/api/load')return rpc('api_load',{p_rows:body.rows});
  if(p==='/api/lastweek')return rpc('api_set_lastweek',{p_items:body.items,p_info:body.info});
+ if(p==='/api/prev')return rpc('api_get_prev');
  if(p==='/api/codes'){const {data,error}=await sb.functions.invoke('set-code',{body:{email:body.email,code:body.code||''}});
   if(error){let msg=error.message;try{msg=(await error.context.json()).error||msg}catch(e){}throw fail(msg,400)}return data}
  throw fail('not found',404)}
@@ -283,7 +284,10 @@ async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
  $('login').classList.add('hid');$('me').textContent=me.email;isOwnerUI=!!me.owner;$('tabs').classList.toggle('hid',!me.owner);showTab('fb');
  $('ffb').classList.toggle('hid',!me.owner);$('ffu').value=me.owner?(me.filesUrl||''):'';
  if(me.owner){$('whu').placeholder=me.webhookSet?'(saved – paste a new URL to replace it)':'https://…';rpc('api_set_settings',{p_webhook:null,p_app_url:location.origin+location.pathname}).catch(()=>{})}
- await sync(true);if(!poll)poll=setInterval(()=>{if(me)sync(false)},5000)}
+ await sync(true);
+ // The owner never has to upload last week's file: if no comparison exists yet, build it from the list the app kept.
+ if(me.owner&&!autoCmp&&!(meta&&meta.lw&&meta.lw.file)){autoCmp=true;compareWithPrevious().catch(()=>{})}
+ if(!poll)poll=setInterval(()=>{if(me)sync(false)},5000)}
 
 function saveFile(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $('exp').onclick=()=>{const q=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v)&&isNaN(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
@@ -314,6 +318,7 @@ for(let i=1;i<=N;i++){c=ws.getCell(e,i);c.font=F({bold:true});c.fill=FL('FFDDEBF
 ws.getCell(e,10).value={formula:`SUM(J${H+1}:J${e-1})`};ws.getCell(e,5).numFmt='#,##0';ws.getCell(e,10).numFmt='#,##0';
 c=ws.getCell(e+2,2);c.value='Prepared from the invoice feedback collector';c.font=F({italic:true,size:9,color:{argb:'FF667085'}});
 ws.autoFilter={from:{row:H,column:1},to:{row:H+rs.length,column:N}};
+addCompareSheet(wb);
 saveFile('Outstanding_notes_for_Finance_'+(meta.date||'')+'.xlsx',await wb.xlsx.writeBuffer(),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 }catch(x){alert('Excel export failed: '+(x.message||x))}};
 
@@ -328,13 +333,14 @@ $('ld').onclick=async()=>{const T=$('ta').value.trim().split(/\r?\n/).map(l=>l.s
   await sync(true);
   const svcOf=o=>(o.service||'').trim()||(o.medMgr?'Payroll + Medical/Personnel':'Payroll'),keyOf=o=>nk(o.mgr)+'|'+nk(svcOf(o))+'|'+nk(o.customer);
   const byKey={},byCust={},used=new Set();
-  Object.keys(rows).sort().forEach(id=>{const o=rows[id];(byKey[keyOf(o)]=byKey[keyOf(o)]||[]).push(o);(byCust[nk(o.customer)]=byCust[nk(o.customer)]||[]).push(o)});
-  const pick=o=>{for(const l of [byKey[keyOf(o)]||[],byCust[nk(o.customer)]||[]]){const p=l.find(x=>!used.has(x));if(p){used.add(p);return p}}return null};
+  Object.keys(rows).sort().forEach(id=>{const o=rows[id];(byKey[keyOf(o)]=byKey[keyOf(o)]||[]).push(o);(byCust[nk(o.customer)+'|'+respOf(o)]=byCust[nk(o.customer)+'|'+respOf(o)]||[]).push(o)});
+  const pick=o=>{for(const l of [byKey[keyOf(o)]||[],byCust[nk(o.customer)+'|'+respOf(o)]||[]]){const p=l.find(x=>!used.has(x));if(p){used.add(p);return p}}return null};
   const out=T.map(c=>{const o={no:+c[0],customer:c[1].trim(),term:(c[2]||'').trim(),balance:bal(c[3]),mgr:(c[4]||'').trim(),medMgr:(c[5]||'').trim(),service:(c[6]||'').trim()},p=pick(o);
    return{...o,lwNote:p?(p.status?allNote(p):p.lwNote||''):'',lwProm:p?(p.plan||p.lwProm||''):''}});
   const res=await api('POST','/api/load',{rows:out});await sync(true);
+  let cmp='';try{const c=await compareWithPrevious();cmp=c?' Compared with last week: '+c.matched+' matched, '+c.cleared+' no longer outstanding.':''}catch(x){cmp=' (Comparison with last week failed: '+x.message+')'}
   let bk='';if(bh){try{await backupNow(bh,'after_load');bk=' Backup saved.'}catch(x){bk=' Backup failed: '+x.message}}else bk=' (No backup folder chosen yet: press Backup now.)';
-  $('lm').textContent='Done – '+out.length+' customers loaded.'+bk+(res.unmatched&&res.unmatched.length?' Not in the Permissions tab (nobody can fill these): '+res.unmatched.join(', ')+'.':'');$('ta').value='';showTab('fb')}catch(x){$('lm').textContent='Failed: '+x.message}};
+  $('lm').textContent='Done – '+out.length+' customers loaded.'+bk+cmp+(res.unmatched&&res.unmatched.length?' Not in the Permissions tab (nobody can fill these): '+res.unmatched.join(', ')+'.':'');$('ta').value='';showTab('fb')}catch(x){$('lm').textContent='Failed: '+x.message}};
 
 // ---- Last week's report: upload, match by company + Type, compare inside the page
 const cellText=v=>{if(v==null)return '';if(typeof v==='object'){if(v.richText)return v.richText.map(x=>x.text).join('');if('result' in v)return cellText(v.result);if(v.text)return String(v.text);if(v instanceof Date)return v.toISOString().slice(0,10);return ''}return String(v)};
@@ -348,32 +354,51 @@ async function readLastWeek(buf){const wb=new ExcelJS.Workbook();await wb.xlsx.l
    return{lines:out,hasType:!!h.type}}}}
  throw new Error('Could not find the header row (Customer, Balance…) in this file.')}
 $('lwb').onclick=()=>{if(!window.ExcelJS){alert('The Excel library did not load (it needs internet access to cdnjs.cloudflare.com).');return}$('lwf').value='';$('lwf').click()};
+// The comparison key is the company name AND the manager responsible for it (the name next to the company).
+// A company with the same name under a different manager is NOT the same line. Type only breaks a tie when the
+// same company + manager appears more than once.
+const respOf=o=>nk(o.mgr)||nk(o.medMgr);
+async function applyLastWeek(lines,hasType,label){
+ const byC={};lines.forEach(l=>{l.used=false;const k=nk(l.customer)+'|'+respOf(l);(byC[k]=byC[k]||[]).push(l)});
+ const items=[],ids=Object.keys(rows).sort();
+ ids.forEach(id=>{const r=rows[id],free=(byC[nk(r.customer)+'|'+respOf(r)]||[]).filter(l=>!l.used),rc=catsOf(typeOf(r)),
+   fit=free.filter(l=>!hasType||[...catsOf(l.type)].some(c=>rc.has(c))),l=(fit.length?fit:free)[0];
+  if(l){l.used=true;items.push({id,lwNote:l.note,lwBal:l.bal==null?'':l.bal,lwStatus:l.status})}});
+ const cleared=lines.filter(l=>!l.used&&(l.bal||0)>0).map(l=>({customer:l.customer,type:l.type,bal:l.bal,note:l.note,mgr:l.mgr||l.medMgr||''}));
+ const info={file:label,matched:items.length,cleared,prevTotal:lines.reduce((s,l)=>s+(l.bal||0),0),lines:lines.length};
+ await api('POST','/api/lastweek',{items,info});await sync(true);
+ return{matched:items.length,total:ids.length,cleared:cleared.length}}
+// Automatic comparison: the list the app held before the last "Load week" is kept on the server, so no file is needed.
+let autoCmp=false;
+async function compareWithPrevious(){
+ const pv=await api('GET','/api/prev'),R=(pv&&pv.rows)||[];if(!R.length)return null;
+ const fb=o=>!!(o.status||o.medStatus);
+ const lines=R.map(o=>({customer:String(o.customer||'').trim(),bal:+o.balance||0,type:typeOf(o),note:fb(o)?exportNote(o):(o.lwNote||''),status:fb(o)?exportStatus(o):'',mgr:String(o.mgr||'').trim(),medMgr:String(o.medMgr||'').trim()}));
+ await sync(true);
+ return applyLastWeek(lines,true,'Previous list kept by the app'+(pv.date?' ('+pv.date+')':''))}
+const cmpMsg=r=>r?'Done – '+r.matched+' of '+r.total+' companies matched (same company and manager), '+r.cleared+' no longer outstanding.':'There is no earlier list in the app yet. It appears after the second Load week.';
+$('lwa').onclick=async()=>{$('lwm').textContent='Comparing…';try{$('lwm').textContent=cmpMsg(await compareWithPrevious())}catch(x){$('lwm').textContent='Failed: '+x.message}};
 $('lwf').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('lwm').textContent='Reading…';
  try{const {lines,hasType}=await readLastWeek(await f.arrayBuffer());await sync(true);
-  const byC={};lines.forEach(l=>{l.used=false;(byC[nk(l.customer)]=byC[nk(l.customer)]||[]).push(l)});
-  const items=[],ids=Object.keys(rows).sort();
-  ids.forEach(id=>{const r=rows[id],list=byC[nk(r.customer)]||[],rc=catsOf(typeOf(r));
-   const fit=l=>!l.used&&(!hasType||[...catsOf(l.type)].some(c=>rc.has(c))),cand=list.filter(fit);
-   const l=cand.find(x=>x.mgr&&nk(x.mgr)===nk(r.mgr))||cand[0];
-   if(l){l.used=true;items.push({id,lwNote:l.note,lwBal:l.bal==null?'':l.bal,lwStatus:l.status})}});
-  const cleared=lines.filter(l=>!l.used&&(l.bal||0)>0).map(l=>({customer:l.customer,type:l.type,bal:l.bal,note:l.note}));
-  const info={file:f.name,matched:items.length,cleared,prevTotal:lines.reduce((s,l)=>s+(l.bal||0),0),lines:lines.length};
-  await api('POST','/api/lastweek',{items,info});await sync(true);
-  $('lwm').textContent='Done – '+items.length+' of '+ids.length+' companies matched, '+cleared.length+' no longer outstanding.'}
+  $('lwm').textContent=cmpMsg(await applyLastWeek(lines,hasType,f.name))}
  catch(x){$('lwm').textContent='Failed: '+x.message}};
 function lwData(){const R=Object.keys(rows).sort().map(id=>rows[id]).filter(r=>r.lwFile===true||r.lwFile===false);
  return R.map(r=>{const d=r.lwFile?(+r.balance||0)-(+r.lwBal||0):null,res=!r.lwFile?'New':Math.abs(d)<0.5?'Unchanged':d>0?'Increased':'Decreased';return{r,d,res}})}
+// The "Comparison" sheet: one line per company + manager, with last week's balance and feedback. Also added to the Finance report.
+function addCompareSheet(wb){const D2=lwData(),cl=(meta&&meta.lw&&meta.lw.cleared)||[];if(!D2.length&&!cl.length)return false;
+ const ws=wb.addWorksheet('Comparison',{views:[{state:'frozen',ySplit:1}]});
+ ws.columns=[{header:'Company',width:38},{header:'Type',width:22},{header:'Manager',width:20},{header:'Last week',width:16},{header:'Now',width:16},{header:'Difference',width:16},{header:'Result',width:14},{header:'Last week feedback',width:60}];
+ D2.forEach(x=>{const r=x.r;ws.addRow([r.customer,typeOf(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,x.d==null?'':x.d,x.res,r.lwFile?(r.lwNote||r.lwStatus||''):''])});
+ cl.forEach(c=>ws.addRow([c.customer,c.type,c.mgr||'',+c.bal||0,0,-(+c.bal||0),'Cleared',c.note||'']));
+ const h=ws.getRow(1);h.font={bold:true,color:{argb:'FFFFFFFF'}};h.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});[4,5,6].forEach(i=>ws.getColumn(i).numFmt='#,##0');
+ return true}
 function lwSummary(){const box=$('lwsum'),L=meta&&meta.lw;if(!me||!me.owner||!L||!L.file){box.classList.add('hid');return}
  const D2=lwData(),cnt={};D2.forEach(x=>cnt[x.res]=(cnt[x.res]||0)+1);const cur=Object.values(rows).reduce((s,r)=>s+(+r.balance||0),0),df=cur-(L.prevTotal||0),cl=L.cleared||[];
  box.classList.remove('hid');
  box.innerHTML=`<div class="name">Comparison with last week</div><p class="sm">File: ${esc(L.file)}${L.sheetDate?'':''} · total ${fmt0(L.prevTotal)} → ${fmt0(cur)} EGP (${df>0?'+':''}${fmt0(df)}) · ${['New','Increased','Decreased','Unchanged'].map(k=>k+' '+(cnt[k]||0)).join(' · ')} · No longer outstanding ${cl.length}</p>
  ${cl.length?`<details><summary>No longer outstanding (${cl.length})</summary><p class="sm">${cl.map(c=>esc(c.customer)+(c.type?' ('+esc(c.type)+')':'')+' – '+fmt0(c.bal)).join('<br>')}</p></details>`:''}
  <button id="lwx" class="alt" type="button">Download comparison (Excel)</button>`;
- $('lwx').onclick=async()=>{try{const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Comparison',{views:[{state:'frozen',ySplit:1}]});
-  ws.columns=[{header:'Company',width:38},{header:'Type',width:22},{header:'Supervisor',width:20},{header:'Last week',width:16},{header:'Now',width:16},{header:'Difference',width:16},{header:'Result',width:14},{header:'Last week feedback',width:60}];
-  D2.forEach(x=>{const r=x.r;ws.addRow([r.customer,typeOf(r),r.mgr,r.lwFile?+r.lwBal||0:'',+r.balance||0,x.d==null?'':x.d,x.res,r.lwFile?(r.lwNote||r.lwStatus||''):''])});
-  cl.forEach(c=>ws.addRow([c.customer,c.type,'',+c.bal||0,0,-(+c.bal||0),'Cleared',c.note||'']));
-  const h=ws.getRow(1);h.font={bold:true,color:{argb:'FFFFFFFF'}};h.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});[4,5,6].forEach(i=>ws.getColumn(i).numFmt='#,##0');
+ $('lwx').onclick=async()=>{try{const wb=new ExcelJS.Workbook();addCompareSheet(wb);
   saveFile('Outstanding_comparison_'+(meta.date||'')+'.xlsx',await wb.xlsx.writeBuffer(),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}catch(x){alert('Could not build the Excel file: '+x.message)}}}
 
 const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('bk',1);r.onupgradeneeded=()=>r.result.createObjectStore('h');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
