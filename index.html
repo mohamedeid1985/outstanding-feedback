@@ -24,7 +24,6 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 #permt{width:100%;border-collapse:collapse}#permt th{font-size:13px;color:var(--mut);text-align:left;padding:4px}#permt td{padding:3px}#permt td input{width:100%}
 .nw{display:flex;gap:8px;align-items:flex-start}.nw .note{flex:1}.nw>button{margin-top:10px}
 #cmpt{width:100%;border-collapse:collapse}#cmpt th{font-size:13px;color:var(--mut);text-align:left;padding:4px}#cmpt td{padding:4px;border-top:1px solid var(--bd)}#cmpt .n{text-align:right;font-variant-numeric:tabular-nums}
-.rs-New{color:var(--acc);font-weight:700}.rs-Cleared,.rs-Decreased{color:var(--ok);font-weight:700}.rs-Increased{color:var(--warn);font-weight:700}
 #bkd{position:fixed;inset:0;background:rgba(5,9,16,.6);display:flex;align-items:center;justify-content:center;padding:14px;z-index:22}#bkd.hid{display:none}
 #chg{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:21}#chg.hid{display:none}
 #login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}#login.hid{display:none}
@@ -154,7 +153,7 @@ const ctab={},fmt0=n=>n==null||n===''?'—':Number(n).toLocaleString('en-US',{ma
 const MT=['Medical','Personnel'];
 function lwHtml(r){if(r.lwFile===false)return '';const has=r.lwNote||r.lwStatus;if(!has&&r.lwBal==null)return '';
  let h='Last week: '+esc(r.lwNote||r.lwStatus||'no feedback');
- if(r.lwBal!=null&&r.lwBal!==''){const d=(+r.balance||0)-(+r.lwBal),s=Math.abs(d)<0.5?'no change':(d>0?'+':'−')+fmt0(Math.abs(d));h+='<br>Balance: '+fmt0(r.lwBal)+' → '+fmt0(r.balance)+' EGP ('+s+')'}
+ if(r.lwBal!=null&&r.lwBal!=='')h+='<br>Balance last week: '+fmt0(r.lwBal)+' EGP';
  return '<div class="lw">'+h+'</div>'}
 function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}>${s[0]}</option>`).join('');
  const ro=Object.keys(REML).map(k=>`<option value="${k}"${r.rem===k?' selected':''}>${REML[k]}</option>`).join('');
@@ -318,7 +317,7 @@ for(let i=1;i<=N;i++){c=ws.getCell(e,i);c.font=F({bold:true});c.fill=FL('FFDDEBF
 ws.getCell(e,10).value={formula:`SUM(J${H+1}:J${e-1})`};ws.getCell(e,5).numFmt='#,##0';ws.getCell(e,10).numFmt='#,##0';
 c=ws.getCell(e+2,2);c.value='Prepared from the invoice feedback collector';c.font=F({italic:true,size:9,color:{argb:'FF667085'}});
 ws.autoFilter={from:{row:H,column:1},to:{row:H+rs.length,column:N}};
-addCompareSheet(wb,true);
+addCompareSheet(wb);
 saveFile('Outstanding_notes_for_Finance_'+(meta.date||'')+'.xlsx',await wb.xlsx.writeBuffer(),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 }catch(x){alert('Excel export failed: '+(x.message||x))}};
 
@@ -365,7 +364,7 @@ async function applyLastWeek(lines,hasType,label){
    fit=free.filter(l=>!hasType||[...catsOf(l.type)].some(c=>rc.has(c))),l=(fit.length?fit:free)[0];
   if(l){l.used=true;items.push({id,lwNote:l.note,lwBal:l.bal==null?'':l.bal,lwStatus:l.status})}});
  const cleared=lines.filter(l=>!l.used&&(l.bal||0)>0).map(l=>({customer:l.customer,type:l.type,bal:l.bal,note:l.note,mgr:l.mgr||l.medMgr||''}));
- const info={file:label,matched:items.length,cleared,prevTotal:lines.reduce((s,l)=>s+(l.bal||0),0),lines:lines.length};
+ const info={file:label,matched:items.length,cleared,lines:lines.length};
  await api('POST','/api/lastweek',{items,info});await sync(true);
  return{matched:items.length,total:ids.length,cleared:cleared.length}}
 // Automatic comparison: the list the app held before the last "Load week" is kept on the server, so no file is needed.
@@ -382,27 +381,22 @@ $('lwf').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('lwm').text
  try{const {lines,hasType}=await readLastWeek(await f.arrayBuffer());await sync(true);
   $('lwm').textContent=cmpMsg(await applyLastWeek(lines,hasType,f.name))}
  catch(x){$('lwm').textContent='Failed: '+x.message}};
-function lwData(){const R=Object.keys(rows).sort().map(id=>rows[id]).filter(r=>r.lwFile===true||r.lwFile===false);
- return R.map(r=>{const d=r.lwFile?(+r.balance||0)-(+r.lwBal||0):null,res=!r.lwFile?'New':Math.abs(d)<0.5?'Unchanged':d>0?'Increased':'Decreased';return{r,d,res}})}
-// The "Comparison" sheet: one line per company + manager, with last week's balance and feedback. Also added to the Finance report.
-// plain=true (used in the Finance report): only the two amounts side by side and last week's feedback, no calculated columns.
-// A blank amount means the company was not in that week's list.
-function addCompareSheet(wb,plain){const D2=lwData(),cl=(meta&&meta.lw&&meta.lw.cleared)||[];if(!D2.length&&!cl.length)return false;
+// Last week's data is only shown, never calculated on: no differences, totals, counts or increase/decrease labels.
+function lwData(){return Object.keys(rows).sort().map(id=>rows[id]).filter(r=>r.lwFile===true||r.lwFile===false)}
+// The "Comparison" sheet (also added to the Finance report): one line per company + manager with last week's amount, this
+// week's amount and last week's feedback. A blank amount means the company was not in that week's list.
+function addCompareSheet(wb){const D2=lwData(),cl=(meta&&meta.lw&&meta.lw.cleared)||[];if(!D2.length&&!cl.length)return false;
  const ws=wb.addWorksheet('Comparison',{views:[{state:'frozen',ySplit:1}]});
- ws.columns=plain?[{header:'Company',width:38},{header:'Type',width:22},{header:'Manager',width:20},{header:'Last week amount',width:18},{header:'This week amount',width:18},{header:'Last week feedback',width:60}]
-  :[{header:'Company',width:38},{header:'Type',width:22},{header:'Manager',width:20},{header:'Last week',width:16},{header:'Now',width:16},{header:'Difference',width:16},{header:'Result',width:14},{header:'Last week feedback',width:60}];
- D2.forEach(x=>{const r=x.r,fb=r.lwFile?(r.lwNote||r.lwStatus||''):'';
-  ws.addRow(plain?[r.customer,typeOf(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,fb]
-   :[r.customer,typeOf(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,x.d==null?'':x.d,x.res,fb])});
- cl.forEach(c=>ws.addRow(plain?[c.customer,c.type,c.mgr||'',+c.bal||0,'',c.note||'']:[c.customer,c.type,c.mgr||'',+c.bal||0,0,-(+c.bal||0),'Cleared',c.note||'']));
- const h=ws.getRow(1);h.font={bold:true,color:{argb:'FFFFFFFF'}};h.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});(plain?[4,5]:[4,5,6]).forEach(i=>ws.getColumn(i).numFmt='#,##0');
+ ws.columns=[{header:'Company',width:38},{header:'Type',width:22},{header:'Manager',width:20},{header:'Last week amount',width:18},{header:'This week amount',width:18},{header:'Last week feedback',width:60}];
+ D2.forEach(r=>ws.addRow([r.customer,typeOf(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,r.lwFile?(r.lwNote||r.lwStatus||''):'']));
+ cl.forEach(c=>ws.addRow([c.customer,c.type,c.mgr||'',+c.bal||0,'',c.note||'']));
+ const h=ws.getRow(1);h.font={bold:true,color:{argb:'FFFFFFFF'}};h.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});[4,5].forEach(i=>ws.getColumn(i).numFmt='#,##0');
  return true}
 function lwSummary(){const box=$('lwsum'),L=meta&&meta.lw;if(!me||!me.owner||!L||!L.file){box.classList.add('hid');return}
- const D2=lwData(),cnt={};D2.forEach(x=>cnt[x.res]=(cnt[x.res]||0)+1);const cur=Object.values(rows).reduce((s,r)=>s+(+r.balance||0),0),df=cur-(L.prevTotal||0),cl=L.cleared||[];
- box.classList.remove('hid');
- box.innerHTML=`<div class="name">Comparison with last week</div><p class="sm">File: ${esc(L.file)}${L.sheetDate?'':''} · total ${fmt0(L.prevTotal)} → ${fmt0(cur)} EGP (${df>0?'+':''}${fmt0(df)}) · ${['New','Increased','Decreased','Unchanged'].map(k=>k+' '+(cnt[k]||0)).join(' · ')} · No longer outstanding ${cl.length}</p>
- ${cl.length?`<details><summary>No longer outstanding (${cl.length})</summary><p class="sm">${cl.map(c=>esc(c.customer)+(c.type?' ('+esc(c.type)+')':'')+' – '+fmt0(c.bal)).join('<br>')}</p></details>`:''}
- <button id="lwx" class="alt" type="button">Download comparison (Excel)</button>`;
+ const cl=L.cleared||[];box.classList.remove('hid');
+ box.innerHTML=`<div class="name">Last week’s list</div><p class="sm">Shown inside each company. Source: ${esc(L.file)}</p>
+ ${cl.length?`<details><summary>Not in this week’s list</summary><p class="sm">${cl.map(c=>esc(c.customer)+(c.type?' ('+esc(c.type)+')':'')+(c.mgr?' – '+esc(c.mgr):'')+' – '+fmt0(c.bal)).join('<br>')}</p></details>`:''}
+ <button id="lwx" class="alt" type="button">Download last week’s data (Excel)</button>`;
  $('lwx').onclick=async()=>{try{const wb=new ExcelJS.Workbook();addCompareSheet(wb);
   saveFile('Outstanding_comparison_'+(meta.date||'')+'.xlsx',await wb.xlsx.writeBuffer(),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')}catch(x){alert('Could not build the Excel file: '+x.message)}}}
 
