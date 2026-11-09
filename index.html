@@ -157,7 +157,7 @@ const exportStatus=r=>r.status||r.medStatus||'';
 const exportPlan=r=>note(r)?(r.plan||''):(r.medDate||r.plan||'');
 const ctab={},fmt0=n=>n==null||n===''?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
 const MT=['Medical','Personnel'];
-function lwHtml(r){if(r.lwFile===false)return '';const has=r.lwNote||r.lwStatus;if(!has&&r.lwBal==null)return '';
+function lwHtml(r){if(!isOwnerUI||r.lwFile===false)return '';const has=r.lwNote||r.lwStatus;if(!has&&r.lwBal==null)return '';
  let h='Last week: '+esc(r.lwNote||r.lwStatus||'no feedback');
  if(r.lwBal!=null&&r.lwBal!=='')h+='<br>Balance last week: '+fmt0(r.lwBal)+' EGP';
  return '<div class="lw">'+h+'</div>'}
@@ -166,7 +166,7 @@ function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}
  const mo=MS.map(s=>`<option${r.medStatus===s[0]?' selected':''}>${s[0]}</option>`).join('');
  const mt=MT.map(s=>`<option${r.medType===s?' selected':''}>${s}</option>`).join('');
  const tb=ctab[r.id]==='med'?'med':'fin',medOn=!!(r.medAmt||r.medStatus||r.medExtra);
- return `<div class="top"><span class="name">${esc(r.customer)}${r.lwFile===false?'<span class="badge">New</span>':''}</span><span class="bal">${(Number(r.balance)||0).toLocaleString('en-US',{maximumFractionDigits:0})} EGP</span></div>
+ return `<div class="top"><span class="name">${esc(r.customer)}${isOwnerUI&&r.lwFile===false?'<span class="badge">New</span>':''}</span><span class="bal">${(Number(r.balance)||0).toLocaleString('en-US',{maximumFractionDigits:0})} EGP</span></div>
 <div class="meta">Term: ${esc(r.term)} · ${esc(r.mgr)}${r.medMgr?' · Medical/Personnel: '+esc(r.medMgr):''}${isOwnerUI?' <button type="button" class="alt" data-mgedit="1" style="padding:2px 10px;font-size:12px">Edit</button>':''}</div>${lwHtml(r)}
 <div class="ctabs"><button type="button" data-ct="fin" class="${tb==='fin'?'on':''}">Finance feedback</button><button type="button" data-ct="med" class="${tb==='med'?'on':''}">Medical / Personnel feedback${medOn?' <b>•</b>':''}</button></div>
 <div data-pane="fin"${tb==='fin'?'':' class="hid"'}><div class="grid"><div><label>Status</label><select data-k="status"><option value="">— choose —</option>${o}</select></div>
