@@ -37,6 +37,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 #chg{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:21}#chg.hid{display:none}
 #login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:14px;z-index:20}#login.hid{display:none}
 #login .card{width:100%;max-width:360px;margin:0}#login input{width:100%;margin:4px 0 10px}
+.card.ro [data-k]:disabled{opacity:.8;cursor:default}
 </style></head><body>
 <div id="login" class="hid"><div class="card"><div class="name" style="margin-bottom:8px">Sign in</div>
 <div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="40"><label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0 0 10px"><input id="lshow" type="checkbox" style="width:auto;margin:0"> Show code</label><button id="lgo" type="button">Sign in</button> <button class="alt inst hid" type="button">Install app</button></div>
@@ -53,12 +54,15 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <div class="prog"><i id="pb"></i></div><span id="pt" class="sm"></span>
 <span id="me" class="sm"></span> <button class="alt inst hid" type="button">Install app</button> <button id="ffb" class="alt hid" type="button">&#128193; Files folder</button> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
 <main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="perm">Permissions</span></div>
+<div class="note hid" id="lockbar"><b>Editing is closed.</b> Yousra has locked this week’s feedback, so you can only read it.</div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="bar" style="margin:8px 0"><input id="q" type="search" placeholder="Search company…" autocomplete="off"></div>
 <div class="chips" id="chips"></div>
 <section id="lwsum" class="card hid" style="border-left-color:var(--acc)"></section>
 <details id="own" class="hid"><summary><b>Owner tools</b></summary>
 <p class="sm">Report date <input type="date" id="rdi"> <button id="xl" type="button">Download Finance report (Excel)</button> <button id="exp" class="alt" type="button">CSV</button></p>
+<p class="sm"><b>Feedback editing.</b> Press <b>Lock editing</b> when you start working on the data: supervisors and delegates can then only read their feedback. <b>Reopen editing</b> lets them edit again. A new Load week reopens it automatically. <span id="lks" class="sm"></span></p>
+<p><button id="lkb" type="button">Lock editing</button></p>
 <p class="sm"><b>Load a new week.</b> In Excel copy columns NO → Medical/Personnel Manager from the new report and paste here (an optional 7th column “Service type” can say Medical, Personnel…). Rows not in the paste are removed.</p>
 <textarea id="ta" placeholder="NO&#9;Customer&#9;Payment term&#9;Balance&#9;Payroll manager&#9;Medical/Personnel manager&#9;Service type (optional)"></textarea>
 <p><button id="ld" type="button">Load week</button> <span id="lm" class="sm"></span></p>
@@ -192,9 +196,25 @@ function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}
 <div><label>Extra note</label><input data-k="medExtra" value="${esc(r.medExtra)}"></div></div>
 <div class="nw"><div class="note" data-n="m"></div><button class="alt hid" type="button" data-edit="m">Edit</button></div></div>
 <div class="err"></div>
-<div class="saverow"><button type="button" data-save="1">Save</button><span class="sv sm"></span></div>`}
+<div class="saverow"><button type="button" data-save="1">Save</button><button type="button" class="alt hid" data-fbedit="1">Edit</button><span class="sv sm"></span></div>
+<div class="sm" data-fbinfo style="margin-top:4px"></div>`}
 const KEYS=['status','date','amt','rem','plan','extra','medType','medAmt','medStatus','medDate','medExtra','noteEdit','noteBase','medNoteEdit','medNoteBase'];
 let isOwnerUI=false;
+// Supervisors/delegates: once feedback is saved the card is read-only and shows an Edit button; when the owner has locked editing
+// it is read-only with no Edit button. The owner is never blocked and sees when (and by whom) the feedback was last saved.
+const editing={};
+const whenTxt=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Africa/Cairo'})};
+function applyLock(el,r){const locked=!!(meta&&meta.locked)&&!isOwnerUI,savedBefore=!!(r.fbAt||done(r)),
+  ro=!isOwnerUI&&(locked||(savedBefore&&!editing[el.id]&&!drafts[el.id]));
+ el.querySelectorAll('[data-k]').forEach(i=>i.disabled=ro);el.classList.toggle('ro',ro);
+ const sbtn=el.querySelector('[data-save]'),eb=el.querySelector('[data-fbedit]'),inf=el.querySelector('[data-fbinfo]');
+ if(sbtn)sbtn.classList.toggle('hid',ro);if(eb)eb.classList.toggle('hid',!(ro&&!locked));
+ if(inf){let t='';if(r.fbAt){t=(isOwnerUI?'Last feedback save: ':'Saved: ')+whenTxt(r.fbAt)+(isOwnerUI&&r.fbBy?' · '+r.fbBy:'');
+   const n=(r.fbN||0)-1;if(n>0)t+=' · Edited '+n+(n>1?' times':' time')+' after the first save'}
+  if(locked)t+=(t?' · ':'')+'Editing is closed';inf.textContent=t}}
+function lockUI(){const lk=!!(meta&&meta.locked);$('lockbar').classList.toggle('hid',!(lk&&!isOwnerUI));
+ $('lkb').textContent=lk?'Reopen editing':'Lock editing';$('lks').textContent=lk?'Locked on '+whenTxt(meta.lockedAt):'Open for supervisors';
+ document.querySelectorAll('#list .card').forEach(el=>{const r=drafts[el.id]||rows[el.id];if(r)applyLock(el,r)})}
 function vals(el,base){const r={...base};el.querySelectorAll('[data-k]').forEach(i=>{const k=i.dataset.k;r[k]=i.type==='number'?(i.value===''?'':+i.value):i.value});return r}
 function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
  const show={date:s&&s[1],amt:i>=0&&i<3,rem:i>=0&&i<3,plan:(s&&s[3])||(i>=0&&i<3&&r.rem==='plan')};
@@ -203,7 +223,7 @@ function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
  const mn=medNote(r),me=el.querySelector('[data-n="m"]');if(!me.querySelector('textarea'))me.textContent=mn||'The Medical/Personnel note appears here.';
  el.querySelectorAll('[data-edit]').forEach(b=>b.classList.toggle('hid',!isOwnerUI));const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
  ['date','plan','medDate'].forEach(k=>{const i=el.querySelector('[data-k="'+k+'"]');if(!i)return;const s=i.parentNode.querySelector('.wd');if(s)s.textContent=r[k]?DW(r[k]).split(',')[0]:''});
- el.classList.toggle('done',!!done(r))}
+ el.classList.toggle('done',!!done(r));applyLock(el,r)}
 function visible(r){const q=$('q').value.trim().toLowerCase();return(!who||r.mgr===who||r.medMgr===who)&&(!$('pend').checked||!done(r))&&(!q||String(r.customer).toLowerCase().includes(q))}
 function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML='';
  ids.forEach(id=>{const r=rows[id];if(!visible(r))return;const v=drafts[id]||r,el=document.createElement('section');el.className='card';el.id=id;el.innerHTML=cardHtml(v);paint(el,v);if(drafts[id])markDirty(el,true);L.appendChild(el)});
@@ -246,11 +266,13 @@ $('list').addEventListener('click',async e=>{const t=e.target;
  if(t.dataset.ct){const el=t.closest('.card');ctab[el.id]=t.dataset.ct;el.querySelectorAll('[data-pane]').forEach(p=>p.classList.toggle('hid',p.dataset.pane!==t.dataset.ct));el.querySelectorAll('[data-ct]').forEach(b=>b.classList.toggle('on',b===t));return}
  if(t.dataset.edit){noteEditOpen(t);return}if(t.dataset.ndone||t.dataset.nreset){noteEditClose(t);return}
  if(t.dataset.mgedit){mgrEditOpen(t);return}if(t.dataset.mgsave){mgrEditSave(t);return}if(t.dataset.mgcancel){mgrEditCancel(t);return}
+ if(t.dataset.fbedit){const el=t.closest('.card');editing[el.id]=true;applyLock(el,drafts[el.id]||rows[el.id]);const f=el.querySelector('[data-k]:not([disabled])');if(f)f.focus();return}
  const b=e.target.closest('[data-save]');if(!b)return;const el=b.closest('.card'),id=el.id,r=drafts[id]||rows[id];
  const d={};KEYS.forEach(k=>d[k]=r[k]);d.done=!!done(r);b.disabled=true;
- try{const s=await api('PUT','/api/row/'+id,d);rows[id]=s;delete drafts[id];markDirty(el,false);
+ try{const s=await api('PUT','/api/row/'+id,d);rows[id]=s;delete drafts[id];delete editing[id];markDirty(el,false);applyLock(el,s);
   el.querySelector('.sv').textContent='Saved '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});stats()}
- catch(x){el.querySelector('.sv').textContent='Not saved – '+x.message+'. Check your connection and try again.'}
+ catch(x){if(/closed/i.test(x.message)){el.querySelector('.sv').textContent='Not saved – '+x.message;sync(true)}
+  else el.querySelector('.sv').textContent='Not saved – '+x.message+'. Check your connection and try again.'}
  b.disabled=false});
 window.addEventListener('beforeunload',e=>{if(Object.keys(drafts).length){e.preventDefault();e.returnValue=''}});
 function setWho(m){who=m;try{localStorage.setItem('who',who)}catch(x){}renderAll()}
@@ -269,7 +291,7 @@ async function sync(full){
    if(drafts[r.id]||el.contains(document.activeElement))return;
    el.innerHTML=cardHtml(r);paint(el,r)});
   const ids=new Set(d.ids);Object.keys(rows).forEach(id=>{if(!ids.has(id)){delete rows[id];re=true}})}
- if((re&&!focusedCard())||!$('list').children.length||$('list').querySelector('p'))renderAll();else stats();lwSummary()}
+ if((re&&!focusedCard())||!$('list').children.length||$('list').querySelector('p'))renderAll();else stats();lwSummary();lockUI()}
 
 function showLogin(msg){me=null;rows={};drafts={};$('chg').classList.add('hid');$('list').innerHTML='';$('login').classList.remove('hid');$('lm2').textContent=msg||''}
 $('lgo').onclick=async()=>{$('lm2').textContent='';
@@ -491,6 +513,9 @@ $('bkn').onclick=async()=>{$('bkm').textContent='';
   $('bkm').textContent='…';$('bkm').textContent='Backup '+await backupNow(h)}catch(x){$('bkm').textContent=x&&x.name==='AbortError'?'':'Failed: '+x.message}};
 // Files folder: the owner saves the online folder link once; the header button opens it in a new tab.
 const okUrl=u=>/^https:\/\/[^\s<>"']+$/.test(u||'');
+$('lkb').onclick=async()=>{const lock=!(meta&&meta.locked);
+ if(lock&&!confirm('Lock editing? Supervisors and delegates will only be able to read their feedback until you reopen it.'))return;
+ try{await rpc('api_set_lock',{p_locked:lock});await sync(true)}catch(x){alert(x.message)}};
 $('ffs').onclick=async()=>{const v=$('ffu').value.trim();$('ffm').textContent='';
  if(v&&!okUrl(v)){$('ffm').textContent='The link must start with https:// and contain no spaces.';return}
  try{await rpc('api_set_files_url',{p_url:v});me.filesUrl=v;$('ffm').textContent=v?'Saved.':'Cleared.'}catch(x){$('ffm').textContent=x.message}};
