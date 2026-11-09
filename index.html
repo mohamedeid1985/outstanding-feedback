@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0e1522">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Outstanding">
 <title>Outstanding invoices – feedback collector</title>
 <style>
 :root{--bg:#0e1522;--fg:#f1f5fb;--mut:#aab6ca;--card:#162033;--bd:#2d3b55;--acc:#8fb2f5;--ok:#3dd598;--warn:#f58220;--inp:#0f1829;--sun:#f58220;--chip:#1e2d47;--onacc:#0b1220;--r:6px;--rc:10px;--fs-s:13px;--fs:15px;--fs-l:17px;color-scheme:dark}
@@ -31,7 +39,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 #login .card{width:100%;max-width:360px;margin:0}#login input{width:100%;margin:4px 0 10px}
 </style></head><body>
 <div id="login" class="hid"><div class="card"><div class="name" style="margin-bottom:8px">Sign in</div>
-<div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="40"><label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0 0 10px"><input id="lshow" type="checkbox" style="width:auto;margin:0"> Show code</label><button id="lgo" type="button">Sign in</button></div>
+<div><label>Work email</label><input id="le" type="email" autocomplete="username"><label>Access code (given to you by Yousra)</label><input id="lc" type="password" autocomplete="current-password" maxlength="40"><label style="display:flex;align-items:center;gap:6px;font-size:13px;margin:0 0 10px"><input id="lshow" type="checkbox" style="width:auto;margin:0"> Show code</label><button id="lgo" type="button">Sign in</button> <button class="alt inst hid" type="button">Install app</button></div>
 <div id="lm2" class="err"></div><div style="text-align:center;margin-top:14px;font-size:15px;font-weight:700;color:var(--fg)">Created by: Youssra Yassin</div></div></div>
 <div id="bkd" class="hid"><div class="card" style="width:100%;max-width:420px;margin:0"><div class="name" style="margin-bottom:6px">Backup location</div><p class="sm" id="bkdt"></p><button id="bkd-same" type="button">Same folder</button> <button id="bkd-new" class="alt" type="button">Choose another folder</button> <button id="bkd-no" class="alt" type="button">Cancel</button></div></div>
 <div id="chg" class="hid"><div class="card" style="width:100%;max-width:380px;margin:0"><div class="name" style="margin-bottom:6px">Choose your own access code</div>
@@ -43,7 +51,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <div class="bar"><label style="margin:0">I’m <select id="who"></select></label>
 <label style="margin:0"><input type="checkbox" id="pend"> pending only</label>
 <div class="prog"><i id="pb"></i></div><span id="pt" class="sm"></span>
-<span id="me" class="sm"></span> <button id="ffb" class="alt hid" type="button">&#128193; Files folder</button> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
+<span id="me" class="sm"></span> <button class="alt inst hid" type="button">Install app</button> <button id="ffb" class="alt hid" type="button">&#128193; Files folder</button> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
 <main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="perm">Permissions</span></div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="bar" style="margin:8px 0"><input id="q" type="search" placeholder="Search company…" autocomplete="off"></div>
@@ -487,6 +495,18 @@ $('ffb').onclick=()=>{if(me&&okUrl(me.filesUrl)){window.open(me.filesUrl,'_blank
 $('whs').onclick=async()=>{const v=$('whu').value.trim();$('whm').textContent='';try{await rpc('api_set_settings',{p_webhook:v,p_app_url:null});$('whm').textContent=v?'Saved.':'Cleared.';$('whu').value='';$('whu').placeholder=v?'(saved – paste a new URL to replace it)':'https://…'}catch(x){$('whm').textContent=x.message}};
 (async()=>{try{const h=await idbGet('dir');if(h)$('bkm').textContent='Folder: '+h.name}catch(x){}})();
 
+// Install as an app: the browser offers its own install prompt (Chrome, Edge, Android); on iPhone/iPad it is done from Safari's Share menu.
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+let installEv=null;
+const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true,
+ isIos=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1),
+ showInstall=on=>document.querySelectorAll('.inst').forEach(b=>b.classList.toggle('hid',!on));
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEv=e;showInstall(true)});
+window.addEventListener('appinstalled',()=>{installEv=null;showInstall(false)});
+if(isIos&&!isStandalone())showInstall(true);
+document.querySelectorAll('.inst').forEach(b=>b.onclick=async()=>{
+ if(installEv){installEv.prompt();try{await installEv.userChoice}catch(x){}installEv=null;showInstall(false)}
+ else alert(isIos?'To install: tap the Share button in Safari, then “Add to Home Screen”.':'To install: open the browser menu and choose “Install app” or “Add to Home screen”.')});
 try{const pe=document.querySelector('meta[name=prefill-email]');if(pe&&pe.content&&!$('le').value)$('le').value=pe.content}catch(x){}
 (async()=>{try{who=localStorage.getItem('who')||''}catch(x){}
  await boot()})();
