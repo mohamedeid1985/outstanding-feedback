@@ -231,16 +231,21 @@ function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
  el.querySelectorAll('[data-edit]').forEach(b=>b.classList.toggle('hid',!isOwnerUI));const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
  ['date','plan','medDate'].forEach(k=>{const i=el.querySelector('[data-k="'+k+'"]');if(!i)return;const s=i.parentNode.querySelector('.wd');if(s)s.textContent=r[k]?DW(r[k]).split(',')[0]:''});
  el.classList.toggle('done',!!done(r));applyLock(el,r)}
-function visible(r){const q=$('q').value.trim().toLowerCase();return(!who||r.mgr===who||r.medMgr===who)&&(!$('pend').checked||!done(r))&&(!q||String(r.customer).toLowerCase().includes(q))}
+// The same person can be spelled differently (Said / Saeed). The chips, the "I'm" list and the filter treat them as ONE person
+// and show the spelling used most often.
+const sameMgr=(r,w)=>nk(r.mgr)===nk(w)||(!!r.medMgr&&nk(r.medMgr)===nk(w));
+function canonNames(all){const cnt={};all.forEach(r=>[r.mgr,r.medMgr].forEach(n=>{if(!n)return;const k=nk(n);cnt[k]=cnt[k]||{};cnt[k][n]=(cnt[k][n]||0)+1}));
+ const out={};Object.keys(cnt).forEach(k=>out[k]=Object.entries(cnt[k]).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0][0]);return out}
+function visible(r){const q=$('q').value.trim().toLowerCase();return(!who||sameMgr(r,who))&&(!$('pend').checked||!done(r))&&(!q||String(r.customer).toLowerCase().includes(q))}
 function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML='';
  ids.forEach(id=>{const r=rows[id];if(!visible(r))return;const v=drafts[id]||r,el=document.createElement('section');el.className='card';el.id=id;el.innerHTML=cardHtml(v);paint(el,v);if(drafts[id])markDirty(el,true);L.appendChild(el)});
  if(!L.children.length)L.innerHTML='<p class="sm">Nothing to show.</p>';stats()}
-function stats(){const all=Object.values(rows),mine=all.filter(r=>!who||r.mgr===who||r.medMgr===who),d=mine.filter(done).length;
+function stats(){const all=Object.values(rows),cn=canonNames(all),mine=all.filter(r=>!who||sameMgr(r,who)),d=mine.filter(done).length;
  $('pb').style.width=(mine.length?100*d/mine.length:0)+'%';$('pt').textContent=d+' of '+mine.length+' done';
- const ms={};all.forEach(r=>{const m=r.mgr||'—';(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++});
+ const ms={};all.forEach(r=>{const m=r.mgr?cn[nk(r.mgr)]:'—';(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++});
  $('chips').innerHTML=Object.entries(ms).sort((a,b)=>(a[1][1]-a[1][0])-(b[1][1]-b[1][0])).reverse().map(([m,v])=>`<span class="chip" data-m="${esc(m)}">${esc(m)} ${v[0]}/${v[1]}</span>`).join('');
- const sel=$('who'),mg=[...new Set(all.map(r=>r.mgr).concat(all.map(r=>r.medMgr)).filter(Boolean))].sort();
- sel.innerHTML='<option value="">everyone</option>'+mg.map(m=>`<option${m===who?' selected':''}>${esc(m)}</option>`).join('')}
+ const sel=$('who'),mg=[...new Set(all.map(r=>r.mgr).concat(all.map(r=>r.medMgr)).filter(Boolean).map(n=>cn[nk(n)]))].sort();
+ sel.innerHTML='<option value="">everyone</option>'+mg.map(m=>`<option${who&&nk(m)===nk(who)?' selected':''}>${esc(m)}</option>`).join('')}
 const focusedCard=()=>document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.card');
 
 function markDirty(el,on){el.classList.toggle('dirty',on);if(on)el.querySelector('.sv').textContent='Unsaved changes – press Save'}
