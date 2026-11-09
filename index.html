@@ -78,7 +78,8 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <div class="name" style="margin-top:14px">Access codes</div>
 <p class="sm">Each person signs in with their email and a personal access code. Press “New code” for a random code, or type your own (at least 8 letters or digits, any case) and press Set. Send the code to that person privately. A random code is shown only once; a new code replaces the old one and signs that person out. Save the table first when you add someone.</p>
 <div style="overflow-x:auto"><table id="codet"><tbody></tbody></table></div></section></main>
-<footer style="text-align:center;padding:10px 14px 30px;font-size:16px;font-weight:700;color:var(--fg)">Created by: Youssra Yassin</footer>
+<footer style="text-align:center;padding:10px 14px 30px;font-size:16px;font-weight:700;color:var(--fg)">Created by: Youssra Yassin<div id="ver" style="font-size:12px;font-weight:400;color:var(--mut);margin-top:4px"></div></footer>
+<div id="newver" class="hid" style="position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--sun);color:#111827;padding:10px 14px;text-align:center;font-weight:700">A new version of the app is available. <button id="reloadbtn" type="button" style="margin-left:8px;background:#111827;color:#fff;border:0;padding:6px 14px">Reload</button></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" integrity="sha384-Pqp51FUN2/qzfxZxBCtF0stpc9ONI6MYZpVqmo8m20SoaQCzf+arZvACkLkirlPz" crossorigin="anonymous"></script>
 <script>
@@ -289,14 +290,17 @@ $('codet').onclick=async e=>{const em=e.target.dataset.code||e.target.dataset.se
   const sel=getSelection(),rg=document.createRange();rg.selectNodeContents(b);sel.removeAllRanges();sel.addRange(rg)}catch(x){alert(x.message)}};
 $('padd').onclick=()=>permRow({});
 const okEmail=s=>/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(s||'');
-// Send the app to one supervisor: download the page as an HTML file (their email already filled in) and open an email draft
-// addressed to them. Yousra attaches the downloaded file and presses Send. The access code is never put in the email.
+// Send the app to one supervisor: download a tiny HTML file that opens the live page (their email already filled in, so it is
+// always the latest version and can be installed as an app) and open an email draft addressed to them. Yousra attaches the
+// downloaded file and presses Send. The access code is never put in the email.
 async function sendApp(btn){const tr=btn.closest('tr'),q=k=>tr.querySelector('[data-p='+k+']').value.trim(),name=q('supervisor'),em=q('email'),dl=q('delegate');
  if(!okEmail(em)){$('um').textContent='Write this person’s email first.';return}
- try{const html=await (await fetch(location.href.split('#')[0].split('?')[0],{cache:'no-store'})).text();
-  saveFile('Outstanding_feedback.html',html.replace('</head>','<meta name="prefill-email" content="'+esc(em)+'">\n</head>'),'text/html;charset=utf-8');
-  const link=location.protocol==='https:'?location.origin+location.pathname:'';
-  const body='Hello'+(name?' '+name:'')+',\r\n\r\nPlease add your feedback on the outstanding invoices of your companies.\r\n\r\nHow to open it:\r\n1) Open the attached file "Outstanding_feedback.html"'+(link?' (or use this link: '+link+')':'')+'.\r\n2) Sign in with your work email ('+em+') and your personal access code.\r\n\r\nYour access code will be sent to you separately.\r\n\r\nThank you';
+ try{const link=location.protocol==='https:'?location.origin+location.pathname:String((me&&me.appUrl)||'');
+  if(!/^https:\/\/[^\s<>"']+$/.test(link))throw new Error('open the app from its https link first');
+  const go=link+'?e='+encodeURIComponent(em).replace(/'/g,'%27'),
+   html='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Outstanding invoices</title>\n<meta http-equiv="refresh" content="0;url='+esc(go)+'">\n<style>body{font-family:system-ui,Arial,sans-serif;background:#0e1522;color:#f1f5fb;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;text-align:center;font-size:18px}a{color:#8fb2f5}</style></head>\n<body><div><p>Opening the Outstanding invoices app…</p><p><a href="'+esc(go)+'">If it does not open, click here</a></p></div>\n<script>location.replace('+JSON.stringify(go).replace(/</g,'\\u003c')+')<\/script></body></html>';
+  saveFile('Outstanding_feedback.html',html,'text/html;charset=utf-8');
+  const body='Hello'+(name?' '+name:'')+',\r\n\r\nPlease add your feedback on the outstanding invoices of your companies.\r\n\r\nHow to open it:\r\n1) Open this link: '+link+'?e='+encodeURIComponent(em)+'\r\n    (or open the attached file "Outstanding_feedback.html", which opens the same page).\r\n2) Sign in with your work email ('+em+') and your personal access code.\r\n3) Tip: in Chrome/Edge or on your phone you can press "Install app" to keep it as an app.\r\n\r\nYour access code will be sent to you separately.\r\n\r\nThank you';
   const a=document.createElement('a');a.href='mailto:'+em+'?'+(okEmail(dl)?'cc='+encodeURIComponent(dl)+'&':'')+'subject='+encodeURIComponent('Outstanding invoices – please add your feedback')+'&body='+encodeURIComponent(body);
   document.body.appendChild(a);a.click();a.remove();
   $('um').textContent='The file Outstanding_feedback.html was downloaded. Attach it to the email that opened, then press Send.'}
@@ -507,7 +511,20 @@ if(isIos&&!isStandalone())showInstall(true);
 document.querySelectorAll('.inst').forEach(b=>b.onclick=async()=>{
  if(installEv){installEv.prompt();try{await installEv.userChoice}catch(x){}installEv=null;showInstall(false)}
  else alert(isIos?'To install: tap the Share button in Safari, then “Add to Home Screen”.':'To install: open the browser menu and choose “Install app” or “Add to Home screen”.')});
-try{const pe=document.querySelector('meta[name=prefill-email]');if(pe&&pe.content&&!$('le').value)$('le').value=pe.content}catch(x){}
+// The sign-in email can come from the link the owner sent (?e=...) or from an older attached copy of the page.
+try{const pe=document.querySelector('meta[name=prefill-email]'),qe=new URLSearchParams(location.search).get('e'),pv=qe||(pe&&pe.content)||'';
+ if(/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(pv)&&!$('le').value)$('le').value=pv;
+ if(qe&&history.replaceState)history.replaceState(null,'',location.pathname+location.hash)}catch(x){}
+// New-version notice + version stamp: the page asks the server when it was last published and warns if it changed while open.
+let pageTag='';
+async function pageStamp(fresh){try{const r=await fetch(location.href.split('#')[0].split('?')[0],{cache:fresh?'no-store':'default'});if(!r.ok)return null;return{tag:r.headers.get('etag')||r.headers.get('last-modified')||'',when:r.headers.get('last-modified')||''}}catch(x){return null}}
+async function versionCheck(first){const s=await pageStamp(!first);if(!s||!s.tag)return;
+ if(first){pageTag=s.tag;const d=new Date(s.when);if(s.when&&!isNaN(d))$('ver').textContent='Version of '+d.toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});return}
+ if(pageTag&&s.tag!==pageTag)$('newver').classList.remove('hid')}
+$('reloadbtn').onclick=()=>{location.reload()};
+if(location.protocol!=='file:'){setTimeout(()=>versionCheck(true),2500);let lastCheck=Date.now();
+ setInterval(()=>{if(!document.hidden){lastCheck=Date.now();versionCheck(false)}},10*60*1000);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-lastCheck>60*1000){lastCheck=Date.now();versionCheck(false)}})}
 (async()=>{try{who=localStorage.getItem('who')||''}catch(x){}
  await boot()})();
 </script></body></html>
