@@ -549,10 +549,12 @@ const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigat
  showInstall=on=>document.querySelectorAll('.inst').forEach(b=>b.classList.toggle('hid',!on));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEv=e;showInstall(true)});
 window.addEventListener('appinstalled',()=>{installEv=null;showInstall(false)});
-if(isIos&&!isStandalone())showInstall(true);
+// On a phone the button is always shown (until the app is installed): Chrome does not always send its install event
+// (for example after the prompt was dismissed), and then the button tells the person where the install option is.
+if((isIos||/android/i.test(navigator.userAgent))&&!isStandalone())showInstall(true);
 document.querySelectorAll('.inst').forEach(b=>b.onclick=async()=>{
  if(installEv){installEv.prompt();try{await installEv.userChoice}catch(x){}installEv=null;showInstall(false)}
- else alert(isIos?'To install: tap the Share button in Safari, then “Add to Home Screen”.':'To install: open the browser menu and choose “Install app” or “Add to Home screen”.')});
+ else alert(isIos?'To install: open this page in Safari, tap the Share button, then “Add to Home Screen”.':'To install: in Chrome tap the ⋮ menu (top right), then “Install app” or “Add to Home screen”. If you opened this link from another app (Outlook, WhatsApp…), open it in Chrome first.')});
 // The sign-in email can come from the link the owner sent (?e=...) or from an older attached copy of the page.
 try{const pe=document.querySelector('meta[name=prefill-email]'),qe=new URLSearchParams(location.search).get('e'),pv=qe||(pe&&pe.content)||'';
  if(/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(pv)&&!$('le').value)$('le').value=pv;
