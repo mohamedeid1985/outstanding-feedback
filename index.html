@@ -143,9 +143,10 @@ const effective=(r,auto,edit,base)=>(r[edit]&&r[base]===auto)?r[edit]:auto;
 const note=r=>effective(r,autoNote(r),'noteEdit','noteBase'),medNote=r=>effective(r,autoMed(r),'medNoteEdit','medNoteBase');
 const allNote=r=>note(r)+(medNote(r)?' | '+medNote(r):'');
 // What is kept as "last week": the Finance feedback AND the Medical/Personnel feedback, each labelled, never one instead of the other.
-const lwText=r=>{const a=note(r),m=medNote(r);return a&&m?a+' | Medical/Personnel: '+m:a||(m?'Medical/Personnel: '+m:'')};
-const lwStat=r=>r.status&&r.medStatus?r.status+' | Medical/Personnel: '+r.medStatus:r.status||(r.medStatus?'Medical/Personnel: '+r.medStatus:'');
-const lwPlan=r=>r.plan&&r.medDate&&r.plan!==r.medDate?r.plan+' | Medical/Personnel: '+r.medDate:r.plan||r.medDate||'';
+const mlab=r=>r.medType||'Medical/Personnel';
+const lwText=r=>{const a=note(r),m=medNote(r);return a&&m?a+' | '+mlab(r)+': '+m:a||(m?mlab(r)+': '+m:'')};
+const lwStat=r=>r.status&&r.medStatus?r.status+' | '+mlab(r)+': '+r.medStatus:r.status||(r.medStatus?mlab(r)+': '+r.medStatus:'');
+const lwPlan=r=>r.plan&&r.medDate&&r.plan!==r.medDate?r.plan+' | '+mlab(r)+': '+r.medDate:r.plan||r.medDate||'';
 function miss(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
  if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.status==='Extra note only'&&!r.extra)m.push('extra note');if(r.medStatus==='Extra note only'&&!r.medExtra)m.push('Medical/Personnel note');if(r.medAmt||r.medStatus){const q=MS.find(x=>x[0]===r.medStatus);if(!q)m.push('Medical/Personnel feedback');else if(q[1]&&!r.medDate)m.push('Medical/Personnel date')}return m.length?'Missing: '+m.join(', '):''}
 const done=r=>r.status&&!miss(r);
