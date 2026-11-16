@@ -53,13 +53,12 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <label style="margin:0"><input type="checkbox" id="pend"> pending only</label>
 <div class="prog"><i id="pb"></i></div><span id="pt" class="sm"></span>
 <span id="me" class="sm"></span> <button class="alt inst hid" type="button">Install app</button> <button id="ffb" class="alt hid" type="button">&#128193; Files folder</button> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
-<main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="perm">Permissions</span></div>
+<main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="own">Owner tools</span><span class="chip" data-t="bk">Backup</span><span class="chip" data-t="lw">Last week</span><span class="chip" data-t="cd">Company details</span><span class="chip" data-t="perm">Permissions</span></div>
 <div class="note hid" id="lockbar"><b>Editing is closed.</b> Yousra has locked this week’s feedback, so you can only read it.</div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="bar" style="margin:8px 0"><input id="q" type="search" placeholder="Search company…" autocomplete="off"></div>
 <div class="chips" id="chips"></div>
-<section id="lwsum" class="card hid" style="border-left-color:var(--acc)"></section>
-<details id="own" class="hid"><summary><b>Owner tools</b></summary>
+<div id="own" class="hid"><div class="name">Owner tools</div>
 <p class="sm">Report date <input type="date" id="rdi"> <button id="xl" type="button">Download Finance report (Excel)</button> <button id="exp" class="alt" type="button">CSV</button></p>
 <p class="sm"><b>Feedback editing.</b> Press <b>Lock editing</b> when you start working on the data: supervisors and delegates can then only read their feedback. <b>Reopen editing</b> lets them edit again. A new Load week reopens it automatically. <span id="lks" class="sm"></span></p>
 <p class="sm">Each company card has its own button: <b>Lock editing</b> closes that company for the supervisors, <b>Reopen for supervisors</b> opens it again (they can then press Edit). A company also closes <b>by itself</b> when you change its feedback. Changing the note text or the manager does not close it.</p>
@@ -67,17 +66,26 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <p class="sm"><b>Load a new week.</b> In Excel copy columns NO → Medical/Personnel Manager from the new report and paste here (an optional 7th column “Service type” can say Medical, Personnel…). Rows not in the paste are removed.</p>
 <textarea id="ta" placeholder="NO&#9;Customer&#9;Payment term&#9;Balance&#9;Payroll manager&#9;Medical/Personnel manager&#9;Service type (optional)"></textarea>
 <p><button id="ld" type="button">Load week</button> <span id="lm" class="sm"></span></p>
+<p class="sm"><b>“Ready for review” email (optional).</b> Paste the Power Automate flow URL. Leave it empty to see only the banner.</p>
+<p><input id="whu" type="url" placeholder="https://…" style="width:70%"> <button id="whs" class="alt" type="button">Save</button> <span id="whm" class="sm"></span></p></div>
+<div id="plw" class="hid"><div class="name">Last week</div>
+<section id="lwsum" class="card hid" style="border-left-color:var(--acc)"></section>
 <p class="sm"><b>Comparison with last week (automatic).</b> Every time you press Load week, the previous list kept by the app is compared with the new one. A line is the same only when both the <b>company name and the manager responsible for it</b> are the same. The result shows inside each company card, in the summary above, and as a “Comparison” sheet in the Finance report you download. You do not need to upload anything.</p>
 <p class="sm">Optional: <button id="lwa" class="alt" type="button">Compare with last week now</button> <input type="file" id="lwf" accept=".xlsx" class="hid"><button id="lwb" class="alt" type="button">Use an Excel file instead</button> <span id="lwm" class="sm"></span></p>
-<p class="sm"><b>Company details (the ℹ️ button on each company).</b> Upload the companies Excel sheet (the file name can be anything). Only these columns are kept: Supervisor Team, Account Holder Name, Payment Date, Client Name, Client Title, Client Email, Client Mobile Number (plus the company name, used for matching). After the upload the app matches the sheet with the Outstanding companies and fills an <b>empty</b> Payroll manager from the sheet when it is sure. Anything it is not sure about is shown here for you to decide.</p>
-<p><input type="file" id="cdf" accept=".xlsx" class="hid"><button id="cdb" class="alt" type="button">Upload companies sheet</button> <button id="cdr" class="alt" type="button">Check matching now</button> <span id="cdm" class="sm"></span></p>
-<div id="cdp"></div>
+</div>
+<div id="pbk" class="hid"><div class="name">Backup</div>
 <p class="sm"><b>Backups (Excel).</b> Press Backup now. The first time you choose the folder; every time after that you are asked whether to keep the same folder or choose another one. The backup is an Excel file saved in a folder named by the upload date, for example “outstanding 27-10-2026”. It is also saved automatically around Load week when a folder has been chosen (Chrome or Edge). The database also keeps a daily snapshot for 30 days.</p>
 <p><button id="bkn" type="button">Backup now</button> <span id="bkm" class="sm"></span></p>
 <p class="sm"><b>Files folder.</b> Paste the link of the online folder (OneDrive, SharePoint or Google Drive) where the reports and backups are kept. The “Files folder” button at the top then opens it in one click. Tip: choose the same folder, synced to your computer, as the Backup folder above so everything lands in one place.</p>
 <p><input id="ffu" type="url" placeholder="https://…" style="width:70%"> <button id="ffs" class="alt" type="button">Save</button> <span id="ffm" class="sm"></span></p>
-<p class="sm"><b>“Ready for review” email (optional).</b> Paste the Power Automate flow URL. Leave it empty to see only the banner.</p>
-<p><input id="whu" type="url" placeholder="https://…" style="width:70%"> <button id="whs" class="alt" type="button">Save</button> <span id="whm" class="sm"></span></p></details>
+</div>
+<div id="pcd" class="hid"><div class="name">Company details</div>
+<p class="sm"><b>Company details (the ℹ️ button on each company).</b> Upload the companies Excel sheet (the file name can be anything). Only these columns are kept: Supervisor Team, Account Holder Name, Payment Date, Client Name, Client Title, Client Email, Client Mobile Number (plus the company name, used for matching). After the upload the app matches the sheet with the Outstanding companies and fills an <b>empty</b> Payroll manager from the sheet when it is sure. Anything it is not sure about is shown here for you to decide.</p>
+<p><input type="file" id="cdf" accept=".xlsx" class="hid"><button id="cdb" class="alt" type="button">Upload companies sheet</button> <button id="cdr" class="alt" type="button">Check matching now</button> <span id="cdm" class="sm"></span></p>
+<div id="cdp"></div>
+<p class="sm" style="margin-top:12px"><b>All Outstanding companies.</b> Search a company and press Edit to type or change its details – also for companies that have no data.</p>
+<div class="bar" style="margin:8px 0"><input id="cds" type="search" placeholder="Search company…" autocomplete="off"></div>
+<div id="cdl"><p class="sm">Loading…</p></div></div>
 <section id="cdalert" class="card hid" style="border-left-color:var(--sun);cursor:pointer"></section>
 <div id="list"><p class="sm">Loading…</p></div>
 <section id="permv" class="card hid" style="border-left-color:var(--acc)"><div class="name">Permissions</div>
@@ -86,7 +94,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <p><button id="padd" class="alt" type="button">+ Add supervisor</button> <button id="us" type="button">Save permissions</button> <span id="um" class="sm"></span></p>
 <div class="name" style="margin-top:14px">Read-only viewers</div>
 <p class="sm">People who can see everything (all companies, their details and last week’s data) but cannot change or download anything. They sign in with their email and an access code like everyone else.</p>
-<table id="viewt"><thead><tr><th>Name</th><th>Email</th><th></th></tr></thead><tbody></tbody></table>
+<table id="viewt"><thead><tr><th>Name</th><th>Email</th><th></th><th></th></tr></thead><tbody></tbody></table>
 <p><button id="vadd" class="alt" type="button">+ Add viewer</button> <button id="vs" type="button">Save viewers</button> <span id="vm" class="sm"></span></p>
 <div class="name" style="margin-top:14px">Access codes</div>
 <p class="sm">Each person signs in with their email and a personal access code. Press “New code” for a random code, or type your own (at least 8 letters or digits, any case) and press Set. Send the code to that person privately. A random code is shown only once; a new code replaces the old one and signs that person out. Save the table first when you add someone.</p>
@@ -134,6 +142,10 @@ function autoMed(r){const s=MS.find(x=>x[0]===r.medStatus);if(!s&&!r.medAmt)retu
 const effective=(r,auto,edit,base)=>(r[edit]&&r[base]===auto)?r[edit]:auto;
 const note=r=>effective(r,autoNote(r),'noteEdit','noteBase'),medNote=r=>effective(r,autoMed(r),'medNoteEdit','medNoteBase');
 const allNote=r=>note(r)+(medNote(r)?' | '+medNote(r):'');
+// What is kept as "last week": the Finance feedback AND the Medical/Personnel feedback, each labelled, never one instead of the other.
+const lwText=r=>{const a=note(r),m=medNote(r);return a&&m?a+' | Medical/Personnel: '+m:a||(m?'Medical/Personnel: '+m:'')};
+const lwStat=r=>r.status&&r.medStatus?r.status+' | Medical/Personnel: '+r.medStatus:r.status||(r.medStatus?'Medical/Personnel: '+r.medStatus:'');
+const lwPlan=r=>r.plan&&r.medDate&&r.plan!==r.medDate?r.plan+' | Medical/Personnel: '+r.medDate:r.plan||r.medDate||'';
 function miss(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
  if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.status==='Extra note only'&&!r.extra)m.push('extra note');if(r.medStatus==='Extra note only'&&!r.medExtra)m.push('Medical/Personnel note');if(r.medAmt||r.medStatus){const q=MS.find(x=>x[0]===r.medStatus);if(!q)m.push('Medical/Personnel feedback');else if(q[1]&&!r.medDate)m.push('Medical/Personnel date')}return m.length?'Missing: '+m.join(', '):''}
 const done=r=>r.status&&!miss(r);
@@ -160,10 +172,11 @@ async function api(method,path,body){
  if(p==='/api/meta')return rpc('api_set_meta',{p_date:body.date||''});
  const mi=p.match(/^\/api\/info\/(c\d+)$/);if(mi)return rpc('api_company_info',{p_id:mi[1]});
  if(p==='/api/cinfo')return rpc('api_save_company_info',{p_rows:body.rows});
+ if(p==='/api/cinfo/list')return rpc('api_company_list');
  if(p==='/api/cinfo/review')return rpc('api_company_info_review');
  if(p==='/api/cinfo/fill')return rpc('api_fill_company_managers');
  if(p==='/api/cinfo/alias')return rpc('api_set_company_alias',{p_name:body.name,p_ckey:body.ckey||'',p_none:!!body.none});
- if(p==='/api/cinfo/manual')return rpc('api_save_company_manual',{p_name:body.name,p_sup:body.sup,p_account:body.account,p_pay_date:body.pay_date,p_c_name:body.c_name,p_c_title:body.c_title,p_c_email:body.c_email,p_c_mobile:body.c_mobile});
+ if(p==='/api/cinfo/manual')return rpc('api_save_company_manual',{p_name:body.name,p_ctype:body.ctype||'',p_sup:body.sup,p_account:body.account,p_pay_date:body.pay_date,p_c_name:body.c_name,p_c_title:body.c_title,p_c_email:body.c_email,p_c_mobile:body.c_mobile});
  if(p==='/api/cinfo/sup')return rpc('api_set_sup_alias',{p_sname:body.sname,p_perm_name:body.perm});
  if(p==='/api/viewers')return rpc('api_save_viewers',{p_rows:body.rows});
  if(p==='/api/users'&&method==='GET')return rpc('api_get_perm');
@@ -338,9 +351,9 @@ function permRow(r){const tr=document.createElement('tr');
 // The name shown next to each email comes from the Permissions table: the supervisor, or "<supervisor> (delegate)" for a delegate email.
 function codeRows(list,prm,vws){const nm={};(vws||[]).forEach(v=>{const e=String(v.email||'').trim().toLowerCase();if(e)nm[e]=(v.name?v.name+' ':'')+'(read-only viewer)'});(prm||[]).forEach(p=>{const s=String(p.supervisor||'').trim();[[p.email,s],[p.delegate,s?s+' (delegate)':'']].forEach(([e,n])=>{e=String(e||'').trim().toLowerCase();if(e&&n)nm[e]=nm[e]?nm[e]+' / '+n:n})});
  $('codet').tBodies[0].innerHTML=list.map((x,i)=>`<tr><td>${esc(x.email)}</td><td>${esc(nm[String(x.email||'').toLowerCase()]||(i===0?'Owner':''))}</td><td class="sm">${x.hasCode?'code set':'no code yet'}</td><td><button class="alt" type="button" data-code="${esc(x.email)}">New code</button></td><td><input data-ci="${esc(x.email)}" placeholder="type a code" size="18" autocomplete="off"> <button class="alt" type="button" data-set="${esc(x.email)}">Set</button> <b data-shown="${esc(x.email)}"></b></td></tr>`).join('')}
-function viewRow(r){const tr=document.createElement('tr');tr.innerHTML=`<td><input data-v="name" value="${esc(r.name)}"></td><td><input data-v="email" type="email" value="${esc(r.email)}"></td><td><button class="alt" type="button" data-vdel="1" aria-label="Remove row">×</button></td>`;$('viewt').tBodies[0].appendChild(tr)}
+function viewRow(r){const tr=document.createElement('tr');tr.innerHTML=`<td><input data-v="name" value="${esc(r.name)}"></td><td><input data-v="email" type="email" value="${esc(r.email)}"></td><td><button class="alt" type="button" data-vsend="1" title="Download the app as an HTML file and open an email to this person">Send app</button></td><td><button class="alt" type="button" data-vdel="1" aria-label="Remove row">×</button></td>`;$('viewt').tBodies[0].appendChild(tr)}
 async function loadPerm(){const r=await api('GET','/api/users');$('permt').tBodies[0].innerHTML='';(r.rows.length?r.rows:[{}]).forEach(permRow);$('viewt').tBodies[0].innerHTML='';(r.viewers||[]).forEach(viewRow);codeRows(r.codes||[],r.rows,r.viewers)}
-$('vadd').onclick=()=>viewRow({});$('viewt').onclick=e=>{if(e.target.dataset.vdel)e.target.closest('tr').remove()};
+$('vadd').onclick=()=>viewRow({});$('viewt').onclick=e=>{if(e.target.dataset.vsend)sendApp(e.target,true);if(e.target.dataset.vdel)e.target.closest('tr').remove()};
 $('vs').onclick=async()=>{$('vm').textContent='';const rows=[...$('viewt').tBodies[0].rows].map(tr=>({name:tr.querySelector('[data-v=name]').value,email:tr.querySelector('[data-v=email]').value})).filter(x=>x.email.trim());
  try{await api('PUT','/api/viewers',{rows});await loadPerm();$('vm').textContent='Saved. Now give each viewer an access code below.'}catch(x){$('vm').textContent='Failed: '+x.message}};
 $('codet').onclick=async e=>{const em=e.target.dataset.code||e.target.dataset.set;if(!em)return;
@@ -353,24 +366,27 @@ const okEmail=s=>/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(s||'');
 // Send the app to one supervisor: download a tiny HTML file that opens the live page (their email already filled in, so it is
 // always the latest version and can be installed as an app) and open an email draft addressed to them. Yousra attaches the
 // downloaded file and presses Send. The access code is never put in the email.
-async function sendApp(btn){const tr=btn.closest('tr'),q=k=>tr.querySelector('[data-p='+k+']').value.trim(),name=q('supervisor'),em=q('email'),dl=q('delegate');
- if(!okEmail(em)){$('um').textContent='Write this person’s email first.';return}
+async function sendApp(btn,viewer){const tr=btn.closest('tr'),q=(k,v)=>{const e=tr.querySelector('[data-p='+k+']')||tr.querySelector('[data-v='+(v||k)+']');return e?e.value.trim():''},name=q('supervisor','name'),em=q('email'),dl=q('delegate'),um=$(viewer?'vm':'um');
+ if(!okEmail(em)){um.textContent='Write this person’s email first.';return}
  try{const link=location.protocol==='https:'?location.origin+location.pathname:String((me&&me.appUrl)||'');
   if(!/^https:\/\/[^\s<>"']+$/.test(link))throw new Error('open the app from its https link first');
   const go=link+'?e='+encodeURIComponent(em).replace(/'/g,'%27'),
    html='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Outstanding invoices</title>\n<meta http-equiv="refresh" content="0;url='+esc(go)+'">\n<style>body{font-family:system-ui,Arial,sans-serif;background:#0e1522;color:#f1f5fb;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;text-align:center;font-size:18px}a{color:#8fb2f5}</style></head>\n<body><div><p>Opening the Outstanding invoices app…</p><p><a href="'+esc(go)+'">If it does not open, click here</a></p></div>\n<script>location.replace('+JSON.stringify(go).replace(/</g,'\\u003c')+')<\/script></body></html>';
   saveFile('Outstanding_feedback.html',html,'text/html;charset=utf-8');
-  const body='Hello'+(name?' '+name:'')+',\r\n\r\nPlease add your feedback on the outstanding invoices of your companies.\r\n\r\nHow to open it:\r\n1) Open this link: '+link+'?e='+encodeURIComponent(em)+'\r\n    (or open the attached file "Outstanding_feedback.html", which opens the same page).\r\n2) Sign in with your work email ('+em+') and your personal access code.\r\n3) Tip: in Chrome/Edge or on your phone you can press "Install app" to keep it as an app.\r\n\r\nYour access code will be sent to you separately.\r\n\r\nThank you';
-  const a=document.createElement('a');a.href='mailto:'+em+'?'+(okEmail(dl)?'cc='+encodeURIComponent(dl)+'&':'')+'subject='+encodeURIComponent('Outstanding invoices – please add your feedback')+'&body='+encodeURIComponent(body);
+  const body='Hello'+(name?' '+name:'')+',\r\n\r\n'+(viewer?'You now have read-only access to the Outstanding invoices app: you can see the companies, their details and last week’s data.':'Please add your feedback on the outstanding invoices of your companies.')+'\r\n\r\nHow to open it:\r\n1) Open this link: '+link+'?e='+encodeURIComponent(em)+'\r\n    (or open the attached file "Outstanding_feedback.html", which opens the same page).\r\n2) Sign in with your work email ('+em+') and your personal access code.\r\n3) Tip: in Chrome/Edge or on your phone you can press "Install app" to keep it as an app.\r\n\r\nYour access code will be sent to you separately.\r\n\r\nThank you';
+  const a=document.createElement('a');a.href='mailto:'+em+'?'+(okEmail(dl)?'cc='+encodeURIComponent(dl)+'&':'')+'subject='+encodeURIComponent(viewer?'Outstanding invoices – your access':'Outstanding invoices – please add your feedback')+'&body='+encodeURIComponent(body);
   document.body.appendChild(a);a.click();a.remove();
-  $('um').textContent='The file Outstanding_feedback.html was downloaded. Attach it to the email that opened, then press Send.'}
- catch(x){$('um').textContent='Could not prepare the file: '+x.message}}
+  um.textContent='The file Outstanding_feedback.html was downloaded. Attach it to the email that opened, then press Send.'}
+ catch(x){um.textContent='Could not prepare the file: '+x.message}}
 $('permt').onclick=e=>{if(e.target.dataset.del)e.target.closest('tr').remove();if(e.target.dataset.send)sendApp(e.target)};
 $('us').onclick=async()=>{$('um').textContent='';
  const rows=[...$('permt').tBodies[0].rows].map(tr=>({supervisor:tr.querySelector('[data-p=supervisor]').value,email:tr.querySelector('[data-p=email]').value,delegate:tr.querySelector('[data-p=delegate]').value}));
  try{await api('PUT','/api/users',{rows});await loadPerm();$('um').textContent='Saved.'}catch(x){$('um').textContent='Failed: '+x.message}};
-function showTab(t){const p=t==='perm';if(p)$('ready').classList.add('hid');['chips','list'].forEach(i=>$(i).classList.toggle('hid',p));$('q').parentNode.classList.toggle('hid',p);$('permv').classList.toggle('hid',!p);
- $('own').classList.toggle('hid',p||!(me&&me.owner));document.querySelectorAll('#tabs .chip').forEach(x=>x.classList.toggle('on',x.dataset.t===t));if(p)loadPerm().catch(()=>{});else lwSummary()}
+function showTab(t){const fbv=t==='fb',ow=!!(me&&me.owner);if(t==='perm')$('ready').classList.add('hid');
+ ['chips','list'].forEach(i=>$(i).classList.toggle('hid',!fbv));$('q').parentNode.classList.toggle('hid',!fbv);$('permv').classList.toggle('hid',t!=='perm');
+ [['own','own'],['bk','pbk'],['lw','plw'],['cd','pcd']].forEach(([k,id])=>$(id).classList.toggle('hid',t!==k||!ow));
+ document.querySelectorAll('#tabs .chip').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
+ if(t==='perm')loadPerm().catch(()=>{});else if(t==='lw')lwSummary();else if(t==='cd')cdList().catch(x=>{$('cdl').innerHTML='<p class="sm">'+esc(x.message)+'</p>'})}
 $('tabs').onclick=e=>{if(e.target.dataset.t)showTab(e.target.dataset.t)};
 function showChange(forced){$('login').classList.add('hid');$('chg').classList.remove('hid');$('chcancel').classList.toggle('hid',!!forced);$('chm').textContent='';
  $('cht').textContent=forced?'The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.':'Choose a new access code (at least 8 letters or digits).'}
@@ -448,9 +464,9 @@ $('ld').onclick=async()=>{const T=$('ta').value.trim().split(/\r?\n/).map(l=>l.s
   Object.keys(rows).sort().forEach(id=>{const o=rows[id];(byKey[keyOf(o)]=byKey[keyOf(o)]||[]).push(o);(byCust[nk(o.customer)+'|'+respOf(o)]=byCust[nk(o.customer)+'|'+respOf(o)]||[]).push(o)});
   const pick=o=>{for(const l of [byKey[keyOf(o)]||[],byCust[nk(o.customer)+'|'+respOf(o)]||[]]){const p=l.find(x=>!used.has(x));if(p){used.add(p);return p}}return null};
   const out=T.map(c=>{const o={no:+c[0],customer:c[1].trim(),term:(c[2]||'').trim(),balance:bal(c[3]),mgr:(c[4]||'').trim(),medMgr:(c[5]||'').trim(),service:(c[6]||'').trim()},p=pick(o);
-   return{...o,lwNote:p?(p.status?allNote(p):p.lwNote||''):'',lwProm:p?(p.plan||p.lwProm||''):''}});
+   return{...o,lwNote:p?((p.status||p.medStatus||note(p)||medNote(p))?lwText(p):p.lwNote||''):'',lwProm:p?(lwPlan(p)||p.lwProm||''):''}});
   const res=await api('POST','/api/load',{rows:out});await sync(true);
-  let fm='';try{const c=await companyReview(true);if(c.fl.filled)fm=' Filled '+c.fl.filled+' empty manager(s) from the companies sheet.';const n=(c.rv.pending||[]).length+(c.fl.ask||[]).filter(a=>a.why!=='notfound'&&a.why!=='nodetails').length;if(n)fm+=' '+n+' companies need your decision (see Owner tools → Company details).'}catch(x){}
+  let fm='';try{const c=await companyReview(true);if(c.fl.filled)fm=' Filled '+c.fl.filled+' empty manager(s) from the companies sheet.';const n=(c.rv.pending||[]).length+(c.fl.ask||[]).filter(a=>a.why!=='notfound'&&a.why!=='nodetails').length;if(n)fm+=' '+n+' companies need your decision (see the Company details tab).'}catch(x){}
   let cmp='';try{const c=await compareWithPrevious();cmp=c?' Compared with last week: '+c.matched+' matched, '+c.cleared+' no longer outstanding.':''}catch(x){cmp=' (Comparison with last week failed: '+x.message+')'}
   let bk='';if(bh){try{await backupNow(bh,'after_load');bk=' Backup saved.'}catch(x){bk=' Backup failed: '+x.message}}else bk=' (No backup folder chosen yet: press Backup now.)';
   $('lm').textContent='Done – '+out.length+' customers loaded.'+bk+cmp+fm+(res.unmatched&&res.unmatched.length?' Not in the Permissions tab (nobody can fill these): '+res.unmatched.join(', ')+'.':'');$('ta').value='';showTab('fb')}catch(x){$('lm').textContent='Failed: '+x.message}};
@@ -461,15 +477,15 @@ async function showInfo(id){const ov=document.createElement('div');ov.style.cssT
  const close=()=>ov.remove();ov.onclick=e=>{if(e.target===ov)close()};document.body.appendChild(ov);
  const nm=rows[id]?rows[id].customer:'';bx.innerHTML='<div class="name">'+esc(nm)+'</div><p class="sm">Loading…</p>';
  let r;try{r=await api('GET','/api/info/'+id)}catch(x){bx.innerHTML='<div class="name">'+esc(nm)+'</div><p>'+esc(x.message)+'</p><p><button type="button" class="alt" id="ixc">Close</button></p>';bx.querySelector('#ixc').onclick=close;return}
- const body=r.found?r.f.map(([k,v])=>'<div style="margin:6px 0"><b>'+esc(k)+' :</b> '+(esc(v)||'—')+'</div>').join(''):'<p>'+(r.noInfo?'No details were kept for this company.':'No details found for this company.')+(isOwnerUI?' You can choose or type them in Owner tools → Company details.':'')+'</p>';
+ const body=r.found?r.f.map(([k,v])=>'<div style="margin:6px 0"><b>'+esc(k)+' :</b> '+(esc(v)||'—')+'</div>').join(''):'<p>'+(r.noInfo?'No details were kept for this company.':'No details found for this company.')+(isOwnerUI?' You can choose or type them in the Company details tab.':'')+'</p>';
  bx.innerHTML='<div class="name">'+esc(nm)+'</div>'+body+'<p><button type="button" class="alt" id="ixc">Close</button></p>';bx.querySelector('#ixc').onclick=close}
-const CDH={name:'company name',sup:'supervisor team',account:'account holder name',pay_date:'payment date',c_name:'client name',c_title:'client title',c_email:'client email',c_mobile:'client mobile number'};
+const CDH={name:'company name',ctype:'company type',sup:'supervisor team',account:'account holder name',pay_date:'payment date',c_name:'client name',c_title:'client title',c_email:'client email',c_mobile:'client mobile number'};
 async function readCompanies(buf){const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);
  const ws=wb.worksheets.find(w=>/payroll/i.test(w.name))||wb.worksheets[0];let hr=0,ix={};
  for(let r=1;r<=Math.min(10,ws.rowCount)&&!hr;r++){const m={};ws.getRow(r).eachCell((c,n)=>{const t=cellText(c.value).trim().toLowerCase().replace(/\s+/g,' ');for(const k in CDH)if(t===CDH[k])m[k]=n});if(m.name&&m.sup){hr=r;ix=m}}
  if(!hr)throw new Error('Cannot find the columns “Company Name” and “Supervisor Team” in the sheet.');
  const out=[];for(let r=hr+1;r<=ws.rowCount;r++){const row=ws.getRow(r),g=k=>ix[k]?cellText(row.getCell(ix[k]).value).trim().replace(/\s+/g,' '):'';const name=g('name');if(!name)continue;
-  out.push({name,sup:g('sup'),account:g('account'),pay_date:g('pay_date'),c_name:g('c_name'),c_title:g('c_title'),c_email:g('c_email'),c_mobile:g('c_mobile')})}
+  out.push({name,ctype:g('ctype'),sup:g('sup'),account:g('account'),pay_date:g('pay_date'),c_name:g('c_name'),c_title:g('c_title'),c_email:g('c_email'),c_mobile:g('c_mobile')})}
  return out}
 $('cdb').onclick=()=>{if(!window.ExcelJS){alert('The Excel library did not load (it needs internet access to cdnjs.cloudflare.com).');return}$('cdf').value='';$('cdf').click()};
 $('cdf').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('cdm').textContent='Reading…';
@@ -489,14 +505,27 @@ function cdRender(){const {rv,fl}=cdState,box=$('cdp'),pend=rv.pending||[];
  if((fl.noMed||[]).length)h+='<p class="sm" style="margin-top:10px"><b>These companies have a Medical/Personnel service but no Medical/Personnel manager:</b> '+fl.noMed.map(esc).join(', ')+'.</p>';
  box.innerHTML=h;
  api('GET','/api/users').then(u=>{const names=(u.rows||[]).map(x=>x.supervisor).filter(Boolean);box.querySelectorAll('[data-am]').forEach(s=>s.innerHTML='<option value="">— choose a manager —</option>'+names.map(n=>'<option>'+esc(n)+'</option>').join(''))}).catch(()=>{});
- const n=pend.length+ask.length,al=$('cdalert');al.classList.toggle('hid',!n);al.textContent=n?n+' compan'+(n>1?'ies need':'y needs')+' your decision (company details / manager). Open Owner tools → Company details.':''}
-$('cdalert').onclick=()=>{const d=$('own');d.open=true;d.classList.remove('hid');d.scrollIntoView({behavior:'smooth'})};
+ const n=pend.length+ask.length,al=$('cdalert');al.classList.toggle('hid',!n);al.textContent=n?n+' compan'+(n>1?'ies need':'y needs')+' your decision (company details / manager). Open the Company details tab.':''}
+$('cdalert').onclick=()=>showTab('cd');
+const CDF=[['ctype','Company Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']];
+let cdAll=[];
+async function cdList(){cdAll=await api('POST','/api/cinfo/list',{});cdFilter()}
+function cdFilter(){const q=$('cds').value.trim().toLowerCase(),box=$('cdl');
+ const L=cdAll.map((c,i)=>[c,i]).filter(([c])=>!q||c.name.toLowerCase().includes(q)||(c.sup||'').toLowerCase().includes(q));
+ box.innerHTML=L.length?L.map(([c,i])=>'<div class="card" data-li="'+i+'" style="margin:6px 0"><div class="top"><span class="name">'+esc(c.name)+'</span><button type="button" class="alt" data-cedit="1">Edit</button></div><div data-cbody="1">'+
+  (c.found?CDF.map(([k,l])=>'<div class="sm"><b>'+l+' :</b> '+(esc(c[k])||'—')+'</div>').join(''):'<div class="sm">'+(c.noInfo?'No details kept for this company.':'No data for this company.')+' Press Edit to type it.</div>')+'</div></div>').join(''):'<p class="sm">Nothing to show.</p>'}
+$('cds').oninput=cdFilter;
+$('cdl').addEventListener('click',async e=>{const t=e.target,card=t.closest('[data-li]');if(!card)return;const c=cdAll[+card.dataset.li];
+ if(t.dataset.cedit){const bd=card.querySelector('[data-cbody]');bd.innerHTML=CDF.map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%" value="'+esc(c.found?c[k]:'')+'">').join('')+'<p><button type="button" data-csave2="1">Save</button> <button type="button" class="alt" data-ccancel="1">Cancel</button> <span class="sm" data-cmsg="1"></span></p>';return}
+ if(t.dataset.ccancel){cdFilter();return}
+ if(t.dataset.csave2){const o={name:c.name};card.querySelectorAll('[data-mf]').forEach(i=>o[i.dataset.mf]=i.value.trim());t.disabled=true;
+  try{await api('POST','/api/cinfo/manual',o);await cdList();companyReview(false).catch(()=>{})}catch(x){card.querySelector('[data-cmsg]').textContent=x.message;t.disabled=false}}});
 $('cdp').addEventListener('click',async e=>{const t=e.target,card=t.closest('[data-pi],[data-ai]');if(!card)return;
  try{
  if(card.dataset.pi!=null){const p=cdState.rv.pending[+card.dataset.pi];
   if(t.dataset.cuse){const k=card.querySelector('[data-ck]').value;if(!k){alert('Choose a company from the list first.');return}await api('POST','/api/cinfo/alias',{name:p.name,ckey:k})}
   else if(t.dataset.cnone){await api('POST','/api/cinfo/alias',{name:p.name,none:true})}
-  else if(t.dataset.cman){const f=card.querySelector('[data-cform]');f.classList.remove('hid');f.innerHTML=[['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']].map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%">').join('')+'<p><button type="button" data-csave="1">Save details</button></p>';return}
+  else if(t.dataset.cman){const f=card.querySelector('[data-cform]');f.classList.remove('hid');f.innerHTML=[['ctype','Company Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']].map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%">').join('')+'<p><button type="button" data-csave="1">Save details</button></p>';return}
   else if(t.dataset.csave){const o={name:p.name};card.querySelectorAll('[data-mf]').forEach(i=>o[i.dataset.mf]=i.value.trim());await api('POST','/api/cinfo/manual',o)}
   else return;
  }else{const a=cdState.fl.ask.filter(x=>x.why!=='notfound'&&x.why!=='nodetails')[+card.dataset.ai];
@@ -537,7 +566,7 @@ let autoCmp=false;
 async function compareWithPrevious(){
  const pv=await api('GET','/api/prev'),R=(pv&&pv.rows)||[];if(!R.length)return null;
  const fb=o=>!!(o.status||o.medStatus);
- const lines=R.map(o=>({customer:String(o.customer||'').trim(),bal:+o.balance||0,type:typeOf(o),note:fb(o)?exportNote(o):(o.lwNote||''),status:fb(o)?exportStatus(o):'',mgr:String(o.mgr||'').trim(),medMgr:String(o.medMgr||'').trim()}));
+ const lines=R.map(o=>({customer:String(o.customer||'').trim(),bal:+o.balance||0,type:typeOf(o),note:fb(o)?lwText(o):(o.lwNote||''),status:fb(o)?lwStat(o):'',mgr:String(o.mgr||'').trim(),medMgr:String(o.medMgr||'').trim()}));
  await sync(true);
  return applyLastWeek(lines,true,'Previous list kept by the app'+(pv.date?' ('+pv.date+')':''))}
 const cmpMsg=r=>r?'Done – '+r.matched+' of '+r.total+' companies matched (same company and manager), '+r.cleared+' no longer outstanding.':'There is no earlier list in the app yet. It appears after the second Load week.';
@@ -611,7 +640,7 @@ $('ffs').onclick=async()=>{const v=$('ffu').value.trim();$('ffm').textContent=''
  if(v&&!okUrl(v)){$('ffm').textContent='The link must start with https:// and contain no spaces.';return}
  try{await rpc('api_set_files_url',{p_url:v});me.filesUrl=v;$('ffm').textContent=v?'Saved.':'Cleared.'}catch(x){$('ffm').textContent=x.message}};
 $('ffb').onclick=()=>{if(me&&okUrl(me.filesUrl)){window.open(me.filesUrl,'_blank','noopener,noreferrer')}
- else{$('own').open=true;$('ffu').focus();$('ffm').textContent='Paste the folder link here and press Save.'}};
+ else{showTab('bk');$('ffu').focus();$('ffm').textContent='Paste the folder link here and press Save.'}};
 $('whs').onclick=async()=>{const v=$('whu').value.trim();$('whm').textContent='';try{await rpc('api_set_settings',{p_webhook:v,p_app_url:null});$('whm').textContent=v?'Saved.':'Cleared.';$('whu').value='';$('whu').placeholder=v?'(saved – paste a new URL to replace it)':'https://…'}catch(x){$('whm').textContent=x.message}};
 (async()=>{try{const h=await idbGet('dir');if(h)$('bkm').textContent='Folder: '+h.name}catch(x){}})();
 
