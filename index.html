@@ -474,7 +474,7 @@ $('ld').onclick=async()=>{const T=$('ta').value.trim().split(/\r?\n/).map(l=>l.s
   Object.keys(rows).sort().forEach(id=>{const o=rows[id];(byKey[keyOf(o)]=byKey[keyOf(o)]||[]).push(o);(byCust[nk(o.customer)+'|'+respOf(o)]=byCust[nk(o.customer)+'|'+respOf(o)]||[]).push(o)});
   const pick=o=>{for(const l of [byKey[keyOf(o)]||[],byCust[nk(o.customer)+'|'+respOf(o)]||[]]){const p=l.find(x=>!used.has(x));if(p){used.add(p);return p}}return null};
   const out=T.map(c=>{const o={no:+c[0],customer:c[1].trim(),term:(c[2]||'').trim(),balance:bal(c[3]),mgr:(c[4]||'').trim(),medMgr:(c[5]||'').trim(),service:(c[6]||'').trim()},p=pick(o);
-   return{...o,lwNote:p?((p.status||p.medStatus||note(p)||medNote(p))?lwText(p):p.lwNote||''):'',lwProm:p?(lwPlan(p)||p.lwProm||''):''}});
+   return{...o,lwNote:p?(lwText(p)||p.lwNote||''):'',lwProm:p?(lwPlan(p)||p.lwProm||''):''}});
   const res=await api('POST','/api/load',{rows:out});await sync(true);
   const nty=out.filter(o=>!o.service&&o.medMgr);let fm=nty.length?' ⚠ '+nty.length+' line(s) have no Service type written (Medical or Personnel?): '+nty.map(o=>o.customer).slice(0,8).join(', ')+(nty.length>8?'…':'')+'.':'';try{const c=await companyReview(true);if(c.fl.filled)fm+=' Filled '+c.fl.filled+' empty manager(s) from the companies sheet.';const n=(c.rv.pending||[]).length+(c.fl.ask||[]).filter(a=>a.why!=='notfound'&&a.why!=='nodetails').length;if(n)fm+=' '+n+' companies need your decision (see the Company details tab).'}catch(x){}
   let cmp='';try{const c=await compareWithPrevious();cmp=c?' Compared with last week: '+c.matched+' matched, '+c.cleared+' no longer outstanding.':''}catch(x){cmp=' (Comparison with last week failed: '+x.message+')'}
@@ -575,7 +575,7 @@ async function applyLastWeek(lines,hasType,label){
 let autoCmp=false;
 async function compareWithPrevious(){
  const pv=await api('GET','/api/prev'),R=(pv&&pv.rows)||[];if(!R.length)return null;
- const fb=o=>!!(o.status||o.medStatus);
+ const fb=o=>!!(o.status||o.medStatus||o.medAmt||o.medExtra||lwText(o));
  const lines=R.map(o=>({customer:String(o.customer||'').trim(),bal:+o.balance||0,type:typeOf(o),note:fb(o)?lwText(o):(o.lwNote||''),status:fb(o)?lwStat(o):'',mgr:String(o.mgr||'').trim(),medMgr:String(o.medMgr||'').trim()}));
  await sync(true);
  return applyLastWeek(lines,true,'Previous list kept by the app'+(pv.date?' ('+pv.date+')':''))}
