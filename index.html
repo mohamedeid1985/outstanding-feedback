@@ -55,6 +55,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <span id="me" class="sm"></span> <button class="alt inst hid" type="button">Install app</button> <button id="ffb" class="alt hid" type="button">&#128193; Files folder</button> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
 <main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="own">Owner tools</span><span class="chip" data-t="bk">Backup</span><span class="chip" data-t="lw">Last week</span><span class="chip" data-t="cd">Company details</span><span class="chip" data-t="perm">Permissions</span></div>
 <div class="note hid" id="lockbar"><b>Editing is closed.</b> Yousra has locked this week’s feedback, so you can only read it.</div>
+<div class="note hid" id="typebar" style="cursor:pointer;border-left-color:#f59e0b"></div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="bar" style="margin:8px 0"><input id="q" type="search" placeholder="Search company…" autocomplete="off"></div>
 <div class="chips" id="chips"></div>
@@ -201,6 +202,11 @@ const exportStatus=r=>r.status||r.medStatus||'';
 const exportPlan=r=>note(r)?(r.plan||''):(r.medDate||r.plan||'');
 const ctab={},fmt0=n=>n==null||n===''?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
 const MT=['Medical','Personnel'];
+// A line has "no type written" when the report's Service type is empty, no Invoice type was chosen, and the line carries Medical/Personnel
+// information (a Medical/Personnel manager, an amount or feedback). Then the app cannot know if it is Medical or Personnel, so it warns.
+const needsType=r=>!String(r.service||'').trim()&&!r.medType&&!!(r.medMgr||r.medAmt||r.medStatus||r.medExtra);
+const typeLabel=r=>needsType(r)?'TYPE NOT WRITTEN (Medical or Personnel?)':typeOf(r);
+let noTypeOnly=false;
 function lwHtml(r){if(r.lwFile===false)return '';const has=r.lwNote||r.lwStatus;if(!has&&r.lwBal==null)return '';
  let h='Last week: '+esc(r.lwNote||r.lwStatus||'no feedback');
  if(r.lwBal!=null&&r.lwBal!=='')h+='<br>Balance last week: '+fmt0(r.lwBal)+' EGP';
@@ -210,7 +216,7 @@ function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}
  const mo=MS.map(s=>`<option${r.medStatus===s[0]?' selected':''}>${s[0]}</option>`).join('');
  const mt=MT.map(s=>`<option${r.medType===s?' selected':''}>${s}</option>`).join('');
  const tb=ctab[r.id]==='med'?'med':'fin',medOn=!!(r.medAmt||r.medStatus||r.medExtra);
- return `<div class="top"><span class="name">${esc(r.customer)}${r.lwFile===false?'<span class="badge">New</span>':''} <button type="button" class="alt" data-info="1" title="Company details" aria-label="Company details" style="padding:0 7px;border-radius:50%;font-size:13px">ℹ️</button></span><span class="bal">${(Number(r.balance)||0).toLocaleString('en-US',{maximumFractionDigits:0})} EGP</span></div>
+ return `<div class="top"><span class="name">${esc(r.customer)}${r.lwFile===false?'<span class="badge">New</span>':''} <span data-nt="1" class="badge hid" style="background:#f59e0b;color:#111" title="The report did not write the type of this line">Type not written</span> <button type="button" class="alt" data-info="1" title="Company details" aria-label="Company details" style="padding:0 7px;border-radius:50%;font-size:13px">ℹ️</button></span><span class="bal">${(Number(r.balance)||0).toLocaleString('en-US',{maximumFractionDigits:0})} EGP</span></div>
 <div class="meta">Term: ${esc(r.term)} · ${esc(r.mgr)}${r.medMgr?' · Medical/Personnel: '+esc(r.medMgr):''}${isOwnerUI?' <button type="button" class="alt" data-mgedit="1" style="padding:2px 10px;font-size:12px">Edit</button>':''}</div>${lwHtml(r)}
 <div class="ctabs"><button type="button" data-ct="fin" class="${tb==='fin'?'on':''}">Finance feedback</button><button type="button" data-ct="med" class="${tb==='med'?'on':''}">Medical / Personnel feedback${medOn?' <b>•</b>':''}</button></div>
 <div data-pane="fin"${tb==='fin'?'':' class="hid"'}><div class="grid"><div><label>Status</label><select data-k="status"><option value="">— choose —</option>${o}</select></div>
@@ -260,17 +266,19 @@ function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
  const mn=medNote(r),me=el.querySelector('[data-n="m"]');if(!me.querySelector('textarea'))me.textContent=mn||'The Medical/Personnel note appears here.';
  el.querySelectorAll('[data-edit]').forEach(b=>b.classList.toggle('hid',!isOwnerUI));const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
  ['date','plan','medDate'].forEach(k=>{const i=el.querySelector('[data-k="'+k+'"]');if(!i)return;const s=i.parentNode.querySelector('.wd');if(s)s.textContent=r[k]?DW(r[k]).split(',')[0]:''});
- el.classList.toggle('done',!!done(r));applyLock(el,r)}
+ el.classList.toggle('done',!!done(r));const nt=el.querySelector('[data-nt]');if(nt)nt.classList.toggle('hid',!needsType(r));applyLock(el,r)}
 // The same person can be spelled differently (Said / Saeed). The chips, the "I'm" list and the filter treat them as ONE person
 // and show the spelling used most often.
 const sameMgr=(r,w)=>nk(r.mgr)===nk(w)||(!!r.medMgr&&nk(r.medMgr)===nk(w));
 function canonNames(all){const cnt={};all.forEach(r=>[r.mgr,r.medMgr].forEach(n=>{if(!n)return;const k=nk(n);cnt[k]=cnt[k]||{};cnt[k][n]=(cnt[k][n]||0)+1}));
  const out={};Object.keys(cnt).forEach(k=>out[k]=Object.entries(cnt[k]).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0][0]);return out}
-function visible(r){const q=$('q').value.trim().toLowerCase();return(!who||sameMgr(r,who))&&(!$('pend').checked||!done(r))&&(!q||String(r.customer).toLowerCase().includes(q))}
+function visible(r){const q=$('q').value.trim().toLowerCase();return(!who||sameMgr(r,who))&&(!$('pend').checked||!done(r))&&(!noTypeOnly||needsType(r))&&(!q||String(r.customer).toLowerCase().includes(q))}
 function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML='';
  ids.forEach(id=>{const r=rows[id];if(!visible(r))return;const v=drafts[id]||r,el=document.createElement('section');el.className='card';el.id=id;el.innerHTML=cardHtml(v);paint(el,v);if(drafts[id])markDirty(el,true);L.appendChild(el)});
  if(!L.children.length)L.innerHTML='<p class="sm">Nothing to show.</p>';stats()}
-function stats(){const all=Object.values(rows),cn=canonNames(all),mine=all.filter(r=>!who||sameMgr(r,who)),d=mine.filter(done).length;
+function stats(){const all=Object.values(rows),nn=all.filter(needsType).length,tb=$('typebar');tb.classList.toggle('hid',!nn);if(!nn)noTypeOnly=false;
+ tb.innerHTML=nn?'<b>'+nn+' line'+(nn>1?'s have':' has')+' no type written</b> (Payroll / Medical / Personnel). Open the Medical / Personnel tab of the line and choose the <b>Invoice type</b>. <u>'+(noTypeOnly?'Show all lines':'Show only these lines')+'</u>':'';
+ cn=canonNames(all),mine=all.filter(r=>!who||sameMgr(r,who)),d=mine.filter(done).length;
  $('pb').style.width=(mine.length?100*d/mine.length:0)+'%';$('pt').textContent=d+' of '+mine.length+' done';
  const ms={};all.forEach(r=>{const m=r.mgr?cn[nk(r.mgr)]:'—';(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++});
  $('chips').innerHTML=Object.entries(ms).sort((a,b)=>(a[1][1]-a[1][0])-(b[1][1]-b[1][0])).reverse().map(([m,v])=>`<span class="chip" data-m="${esc(m)}">${esc(m)} ${v[0]}/${v[1]}</span>`).join('');
@@ -325,6 +333,7 @@ $('list').addEventListener('click',async e=>{const t=e.target;
 window.addEventListener('beforeunload',e=>{if(Object.keys(drafts).length){e.preventDefault();e.returnValue=''}});
 function setWho(m){who=m;try{localStorage.setItem('who',who)}catch(x){}renderAll()}
 $('who').onchange=e=>setWho(e.target.value);$('q').oninput=renderAll;$('pend').onchange=renderAll;
+$('typebar').onclick=()=>{noTypeOnly=!noTypeOnly;renderAll()};
 $('chips').onclick=e=>{const m=e.target.dataset.m;if(m)setWho(m)};
 
 async function sync(full){
@@ -421,7 +430,7 @@ async function boot(){try{me=await api('GET','/api/me')}catch(x){return}
 function saveFile(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
 $('exp').onclick=()=>{const q=v=>{v=String(v??'');if(/^[=+\-@\t\r]/.test(v)&&isNaN(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
  const H=['NO','Customer','Type','Payment term','Balance','Payroll manager','Status','Notes','Medical/Personnel manager','Medical/Personnel portion','Medical/Personnel notes','Planned date'];
- const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,typeOf(r),r.term,r.balance,r.mgr,exportStatus(r),exportNote(r),r.medMgr||'',r.medAmt??'',exportMedNote(r),exportPlan(r)].map(q).join(','));
+ const L=Object.keys(rows).sort().map(id=>rows[id]).map(r=>[r.no,r.customer,typeLabel(r),r.term,r.balance,r.mgr,exportStatus(r),exportNote(r),r.medMgr||'',r.medAmt??'',exportMedNote(r),exportPlan(r)].map(q).join(','));
  saveFile('Notes_Invoices_not_settled_'+(meta.date||'')+'.csv','﻿'+[H.map(q).join(',')].concat(L).join('\r\n'),'text/csv;charset=utf-8')};
 $('xl').onclick=async()=>{if(!window.ExcelJS){alert('Excel export needs internet access to load the ExcelJS library. Use the CSV button instead.');return}
 try{
@@ -437,7 +446,7 @@ ws.mergeCells(3,1,3,N);c=ws.getCell(3,1);c.value='Status colours:  green = payme
 cols.forEach((x,i)=>{c=ws.getCell(H,i+1);c.value=x[0];c.font=F({bold:true,color:{argb:'FFFFFFFF'}});c.fill=FL('FF1F3864');c.alignment={wrapText:true,horizontal:'center',vertical:'middle'};c.border=BD});ws.getRow(H).height=34;
 const col=st=>{const i=ST.findIndex(s=>s[0]===st);return i<0?(MS.some(s=>s[0]===st)?'FFFFF2CC':'FFFCE4D6'):i<3?'FFE2EFDA':(st==='Planned payment date'||st==='Within payment term')?'FFDDEBF7':i<7?'FFFFF2CC':'FFEDEDED'};
 rs.forEach((r,k)=>{const n=H+1+k,row=ws.getRow(n),pn=exportNote(r),mn=exportMedNote(r),es=exportStatus(r),pv=exportPlan(r),pd=pv?String(pv).split('-').map(Number):null;
- const v=[r.no,r.customer,typeOf(r),(r.term===''||isNaN(+r.term))?r.term:+r.term,+r.balance||0,r.mgr||'',es||(mn?'':'No feedback yet'),pn,r.medMgr||'',r.medAmt===''||r.medAmt==null?'':+r.medAmt,mn,pd?new Date(Date.UTC(pd[0],pd[1]-1,pd[2])):''];
+ const v=[r.no,r.customer,typeLabel(r),(r.term===''||isNaN(+r.term))?r.term:+r.term,+r.balance||0,r.mgr||'',es||(mn?'':'No feedback yet'),pn,r.medMgr||'',r.medAmt===''||r.medAmt==null?'':+r.medAmt,mn,pd?new Date(Date.UTC(pd[0],pd[1]-1,pd[2])):''];
  v.forEach((x,i)=>{const z=row.getCell(i+1);z.value=x;z.font=F();z.border=BD;z.alignment={vertical:'top',wrapText:i===1||i===2||i===7||i===10,...((i===0||i===3||i===11)?{horizontal:'center'}:{})};if(k%2)z.fill=FL('FFF7F9FC')});
  row.getCell(5).numFmt='#,##0';row.getCell(10).numFmt='#,##0';row.getCell(12).numFmt='d mmm yyyy';
  const sc=row.getCell(7);sc.fill=FL(col(es));sc.font=F({bold:true});
@@ -467,7 +476,7 @@ $('ld').onclick=async()=>{const T=$('ta').value.trim().split(/\r?\n/).map(l=>l.s
   const out=T.map(c=>{const o={no:+c[0],customer:c[1].trim(),term:(c[2]||'').trim(),balance:bal(c[3]),mgr:(c[4]||'').trim(),medMgr:(c[5]||'').trim(),service:(c[6]||'').trim()},p=pick(o);
    return{...o,lwNote:p?((p.status||p.medStatus||note(p)||medNote(p))?lwText(p):p.lwNote||''):'',lwProm:p?(lwPlan(p)||p.lwProm||''):''}});
   const res=await api('POST','/api/load',{rows:out});await sync(true);
-  let fm='';try{const c=await companyReview(true);if(c.fl.filled)fm=' Filled '+c.fl.filled+' empty manager(s) from the companies sheet.';const n=(c.rv.pending||[]).length+(c.fl.ask||[]).filter(a=>a.why!=='notfound'&&a.why!=='nodetails').length;if(n)fm+=' '+n+' companies need your decision (see the Company details tab).'}catch(x){}
+  const nty=out.filter(o=>!o.service&&o.medMgr);let fm=nty.length?' ⚠ '+nty.length+' line(s) have no Service type written (Medical or Personnel?): '+nty.map(o=>o.customer).slice(0,8).join(', ')+(nty.length>8?'…':'')+'.':'';try{const c=await companyReview(true);if(c.fl.filled)fm+=' Filled '+c.fl.filled+' empty manager(s) from the companies sheet.';const n=(c.rv.pending||[]).length+(c.fl.ask||[]).filter(a=>a.why!=='notfound'&&a.why!=='nodetails').length;if(n)fm+=' '+n+' companies need your decision (see the Company details tab).'}catch(x){}
   let cmp='';try{const c=await compareWithPrevious();cmp=c?' Compared with last week: '+c.matched+' matched, '+c.cleared+' no longer outstanding.':''}catch(x){cmp=' (Comparison with last week failed: '+x.message+')'}
   let bk='';if(bh){try{await backupNow(bh,'after_load');bk=' Backup saved.'}catch(x){bk=' Backup failed: '+x.message}}else bk=' (No backup folder chosen yet: press Backup now.)';
   $('lm').textContent='Done – '+out.length+' customers loaded.'+bk+cmp+fm+(res.unmatched&&res.unmatched.length?' Not in the Permissions tab (nobody can fill these): '+res.unmatched.join(', ')+'.':'');$('ta').value='';showTab('fb')}catch(x){$('lm').textContent='Failed: '+x.message}};
@@ -583,7 +592,7 @@ function lwData(){return Object.keys(rows).sort().map(id=>rows[id]).filter(r=>r.
 function addCompareSheet(wb){const D2=lwData(),cl=(meta&&meta.lw&&meta.lw.cleared)||[];if(!D2.length&&!cl.length)return false;
  const ws=wb.addWorksheet('Comparison',{views:[{state:'frozen',ySplit:1}]});
  ws.columns=[{header:'Company',width:38},{header:'Type',width:22},{header:'Manager',width:20},{header:'Last week amount',width:18},{header:'This week amount',width:18},{header:'Last week feedback',width:60}];
- D2.forEach(r=>ws.addRow([r.customer,typeOf(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,r.lwFile?(r.lwNote||r.lwStatus||''):'']));
+ D2.forEach(r=>ws.addRow([r.customer,typeLabel(r),r.mgr||r.medMgr||'',r.lwFile?+r.lwBal||0:'',+r.balance||0,r.lwFile?(r.lwNote||r.lwStatus||''):'']));
  cl.forEach(c=>ws.addRow([c.customer,c.type,c.mgr||'',+c.bal||0,'',c.note||'']));
  const h=ws.getRow(1);h.font={bold:true,color:{argb:'FFFFFFFF'}};h.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F3864'}});[4,5].forEach(i=>ws.getColumn(i).numFmt='#,##0');
  return true}
