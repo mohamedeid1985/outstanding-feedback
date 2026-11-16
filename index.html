@@ -282,7 +282,7 @@ function stats(){const all=Object.values(rows),nn=all.filter(needsType).length,t
  tb.innerHTML=nn?'<b>'+nn+' line'+(nn>1?'s have':' has')+' no type written</b> (Payroll / Medical / Personnel). Open the Medical / Personnel tab of the line and choose the <b>Invoice type</b>. <u>'+(noTypeOnly?'Show all lines':'Show only these lines')+'</u>':'';
  cn=canonNames(all),mine=all.filter(r=>!who||sameMgr(r,who)),d=mine.filter(done).length;
  $('pb').style.width=(mine.length?100*d/mine.length:0)+'%';$('pt').textContent=d+' of '+mine.length+' done';
- const ms={};all.forEach(r=>{const m=r.mgr?cn[nk(r.mgr)]:'—';(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++});
+ const ms={};all.forEach(r=>{const L=[...new Set([r.mgr,r.medMgr].filter(Boolean).map(n=>cn[nk(n)]))];(L.length?L:['—']).forEach(m=>{(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++})}); // a line counts for its Payroll manager AND its Medical/Personnel manager
  $('chips').innerHTML=Object.entries(ms).sort((a,b)=>(a[1][1]-a[1][0])-(b[1][1]-b[1][0])).reverse().map(([m,v])=>`<span class="chip" data-m="${esc(m)}">${esc(m)} ${v[0]}/${v[1]}</span>`).join('');
  const sel=$('who'),mg=[...new Set(all.map(r=>r.mgr).concat(all.map(r=>r.medMgr)).filter(Boolean).map(n=>cn[nk(n)]))].sort();
  sel.innerHTML='<option value="">everyone</option>'+mg.map(m=>`<option${who&&nk(m)===nk(who)?' selected':''}>${esc(m)}</option>`).join('')}
