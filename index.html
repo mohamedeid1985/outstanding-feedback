@@ -55,7 +55,6 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <span id="me" class="sm"></span> <button class="alt inst hid" type="button">Install app</button> <button id="ffb" class="alt hid" type="button">&#128193; Files folder</button> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
 <main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="own">Owner tools</span><span class="chip" data-t="bk">Backup</span><span class="chip" data-t="lw">Last week</span><span class="chip" data-t="cd">Company details</span><span class="chip" data-t="perm">Permissions</span></div>
 <div class="note hid" id="lockbar"><b>Editing is closed.</b> Yousra has locked this week’s feedback, so you can only read it.</div>
-<div class="note hid" id="typebar" style="cursor:pointer;border-left-color:#f59e0b"></div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="bar" style="margin:8px 0"><input id="q" type="search" placeholder="Search company…" autocomplete="off"></div>
 <div class="chips" id="chips"></div>
@@ -278,9 +277,7 @@ function visible(r){const q=$('q').value.trim().toLowerCase();return(!who||sameM
 function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML='';
  ids.forEach(id=>{const r=rows[id];if(!visible(r))return;const v=drafts[id]||r,el=document.createElement('section');el.className='card';el.id=id;el.innerHTML=cardHtml(v);paint(el,v);if(drafts[id])markDirty(el,true);L.appendChild(el)});
  if(!L.children.length)L.innerHTML='<p class="sm">Nothing to show.</p>';stats()}
-function stats(){const all=Object.values(rows),nn=all.filter(r=>needsType(drafts[r.id]||r)).length,tb=$('typebar');tb.classList.toggle('hid',!nn);if(!nn)noTypeOnly=false;
- tb.innerHTML=nn?'<b>'+nn+' line'+(nn>1?'s have':' has')+' no type written</b> (Payroll / Medical / Personnel). Open the Medical / Personnel tab of the line and choose the <b>Invoice type</b>. <u>'+(noTypeOnly?'Show all lines':'Show only these lines')+'</u>':'';
- cn=canonNames(all),mine=all.filter(r=>!who||sameMgr(r,who)),d=mine.filter(done).length;
+function stats(){const all=Object.values(rows),cn=canonNames(all),mine=all.filter(r=>!who||sameMgr(r,who)),d=mine.filter(done).length;
  $('pb').style.width=(mine.length?100*d/mine.length:0)+'%';$('pt').textContent=d+' of '+mine.length+' done';
  const ms={};all.forEach(r=>{const L=[...new Set([r.mgr,r.medMgr].filter(Boolean).map(n=>cn[nk(n)]))];(L.length?L:['—']).forEach(m=>{(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++})}); // a line counts for its Payroll manager AND its Medical/Personnel manager
  $('chips').innerHTML=Object.entries(ms).sort((a,b)=>(a[1][1]-a[1][0])-(b[1][1]-b[1][0])).reverse().map(([m,v])=>`<span class="chip" data-m="${esc(m)}">${esc(m)} ${v[0]}/${v[1]}</span>`).join('');
@@ -289,7 +286,7 @@ function stats(){const all=Object.values(rows),nn=all.filter(r=>needsType(drafts
 const focusedCard=()=>document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.card');
 
 function markDirty(el,on){el.classList.toggle('dirty',on);if(on)el.querySelector('.sv').textContent='Unsaved changes – press Save'}
-$('list').addEventListener('input',e=>{if(e.target.dataset.ne||e.target.dataset.mg)return;const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true);if(e.target.dataset.k==='medType')stats()});
+$('list').addEventListener('input',e=>{if(e.target.dataset.ne||e.target.dataset.mg)return;const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true)});
 function noteEditOpen(btn){const k=btn.dataset.edit,el=btn.closest('.card'),r=drafts[el.id]||rows[el.id],box=el.querySelector('[data-n="'+k+'"]');if(box.querySelector('textarea'))return;
  box.innerHTML='<textarea data-ne="'+k+'" style="width:100%;height:80px"></textarea><div style="margin-top:6px;display:flex;gap:8px"><button type="button" class="alt" data-ndone="'+k+'">Done</button><button type="button" class="alt" data-nreset="'+k+'">Back to automatic text</button></div>';
  const ta=box.querySelector('textarea');ta.value=k==='p'?note(r):medNote(r);box.parentNode.classList.remove('hid');ta.focus()}
@@ -335,7 +332,6 @@ $('list').addEventListener('click',async e=>{const t=e.target;
 window.addEventListener('beforeunload',e=>{if(Object.keys(drafts).length){e.preventDefault();e.returnValue=''}});
 function setWho(m){who=m;try{localStorage.setItem('who',who)}catch(x){}renderAll()}
 $('who').onchange=e=>setWho(e.target.value);$('q').oninput=renderAll;$('pend').onchange=renderAll;
-$('typebar').onclick=()=>{noTypeOnly=!noTypeOnly;renderAll()};
 $('chips').onclick=e=>{const m=e.target.dataset.m;if(m)setWho(m)};
 
 async function sync(full){
