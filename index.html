@@ -280,7 +280,7 @@ function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML=
 function stats(){const all=Object.values(rows),cn=canonNames(all),mine=all.filter(r=>!who||sameMgr(r,who)),d=mine.filter(done).length;
  $('pb').style.width=(mine.length?100*d/mine.length:0)+'%';$('pt').textContent=d+' of '+mine.length+' done';
  const ms={};all.forEach(r=>{const L=[...new Set([r.mgr,r.medMgr].filter(Boolean).map(n=>cn[nk(n)]))];(L.length?L:['—']).forEach(m=>{(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++})}); // a line counts for its Payroll manager AND its Medical/Personnel manager
- $('chips').innerHTML=Object.entries(ms).sort((a,b)=>(a[1][1]-a[1][0])-(b[1][1]-b[1][0])).reverse().map(([m,v])=>`<span class="chip" data-m="${esc(m)}">${esc(m)} ${v[0]}/${v[1]}</span>`).join('');
+ $('chips').innerHTML='<span class="chip'+(!who?' on':'')+'" data-m="">Show all ('+all.length+')</span>'+Object.entries(ms).sort((a,b)=>(a[1][1]-a[1][0])-(b[1][1]-b[1][0])).reverse().map(([m,v])=>`<span class="chip${who&&nk(m)===nk(who)?' on':''}" data-m="${esc(m)}">${esc(m)} ${v[0]}/${v[1]}</span>`).join('');
  const sel=$('who'),mg=[...new Set(all.map(r=>r.mgr).concat(all.map(r=>r.medMgr)).filter(Boolean).map(n=>cn[nk(n)]))].sort();
  sel.innerHTML='<option value="">everyone</option>'+mg.map(m=>`<option${who&&nk(m)===nk(who)?' selected':''}>${esc(m)}</option>`).join('')}
 const focusedCard=()=>document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.card');
@@ -332,7 +332,7 @@ $('list').addEventListener('click',async e=>{const t=e.target;
 window.addEventListener('beforeunload',e=>{if(Object.keys(drafts).length){e.preventDefault();e.returnValue=''}});
 function setWho(m){who=m;try{localStorage.setItem('who',who)}catch(x){}renderAll()}
 $('who').onchange=e=>setWho(e.target.value);$('q').oninput=renderAll;$('pend').onchange=renderAll;
-$('chips').onclick=e=>{const m=e.target.dataset.m;if(m)setWho(m)};
+$('chips').onclick=e=>{const m=e.target.dataset.m;if(m!==undefined)setWho(m)};
 
 async function sync(full){
  let d;try{d=await api('GET','/api/sync?since='+(full?0:ver)+'&epoch='+encodeURIComponent(epoch));$('conn').textContent=''}catch(x){if(x.status!==401)$('conn').textContent='· offline, retrying…';return}
