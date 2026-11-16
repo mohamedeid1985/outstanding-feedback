@@ -278,7 +278,7 @@ function visible(r){const q=$('q').value.trim().toLowerCase();return(!who||sameM
 function renderAll(){const L=$('list'),ids=Object.keys(rows).sort();L.innerHTML='';
  ids.forEach(id=>{const r=rows[id];if(!visible(r))return;const v=drafts[id]||r,el=document.createElement('section');el.className='card';el.id=id;el.innerHTML=cardHtml(v);paint(el,v);if(drafts[id])markDirty(el,true);L.appendChild(el)});
  if(!L.children.length)L.innerHTML='<p class="sm">Nothing to show.</p>';stats()}
-function stats(){const all=Object.values(rows),nn=all.filter(needsType).length,tb=$('typebar');tb.classList.toggle('hid',!nn);if(!nn)noTypeOnly=false;
+function stats(){const all=Object.values(rows),nn=all.filter(r=>needsType(drafts[r.id]||r)).length,tb=$('typebar');tb.classList.toggle('hid',!nn);if(!nn)noTypeOnly=false;
  tb.innerHTML=nn?'<b>'+nn+' line'+(nn>1?'s have':' has')+' no type written</b> (Payroll / Medical / Personnel). Open the Medical / Personnel tab of the line and choose the <b>Invoice type</b>. <u>'+(noTypeOnly?'Show all lines':'Show only these lines')+'</u>':'';
  cn=canonNames(all),mine=all.filter(r=>!who||sameMgr(r,who)),d=mine.filter(done).length;
  $('pb').style.width=(mine.length?100*d/mine.length:0)+'%';$('pt').textContent=d+' of '+mine.length+' done';
@@ -289,7 +289,7 @@ function stats(){const all=Object.values(rows),nn=all.filter(needsType).length,t
 const focusedCard=()=>document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.card');
 
 function markDirty(el,on){el.classList.toggle('dirty',on);if(on)el.querySelector('.sv').textContent='Unsaved changes – press Save'}
-$('list').addEventListener('input',e=>{if(e.target.dataset.ne||e.target.dataset.mg)return;const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true)});
+$('list').addEventListener('input',e=>{if(e.target.dataset.ne||e.target.dataset.mg)return;const el=e.target.closest('.card');if(!el)return;const id=el.id,r=vals(el,drafts[id]||rows[id]);paint(el,r);drafts[id]=r;markDirty(el,true);if(e.target.dataset.k==='medType')stats()});
 function noteEditOpen(btn){const k=btn.dataset.edit,el=btn.closest('.card'),r=drafts[el.id]||rows[el.id],box=el.querySelector('[data-n="'+k+'"]');if(box.querySelector('textarea'))return;
  box.innerHTML='<textarea data-ne="'+k+'" style="width:100%;height:80px"></textarea><div style="margin-top:6px;display:flex;gap:8px"><button type="button" class="alt" data-ndone="'+k+'">Done</button><button type="button" class="alt" data-nreset="'+k+'">Back to automatic text</button></div>';
  const ta=box.querySelector('textarea');ta.value=k==='p'?note(r):medNote(r);box.parentNode.classList.remove('hid');ta.focus()}
