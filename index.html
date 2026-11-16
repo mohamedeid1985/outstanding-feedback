@@ -144,9 +144,9 @@ const effective=(r,auto,edit,base)=>(r[edit]&&r[base]===auto)?r[edit]:auto;
 const note=r=>effective(r,autoNote(r),'noteEdit','noteBase'),medNote=r=>effective(r,autoMed(r),'medNoteEdit','medNoteBase');
 const allNote=r=>note(r)+(medNote(r)?' | '+medNote(r):'');
 // What is kept as "last week": the Finance feedback AND the Medical/Personnel feedback, each labelled, never one instead of the other.
-const lwText=r=>{const a=note(r),m=medNote(r);return a&&m?a+' / '+MP+': '+m:a||(m?MP+': '+m:'')};
-const lwStat=r=>r.status&&r.medStatus?r.status+' / '+MP+': '+r.medStatus:r.status||(r.medStatus?MP+': '+r.medStatus:'');
-const lwPlan=r=>r.plan&&r.medDate&&r.plan!==r.medDate?r.plan+' / '+MP+': '+r.medDate:r.plan||r.medDate||'';
+const lwText=r=>{const a=note(r),m=medNote(r);return a&&m?a+' / '+MP(r)+': '+m:a||(m?MP(r)+': '+m:'')};
+const lwStat=r=>r.status&&r.medStatus?r.status+' / '+MP(r)+': '+r.medStatus:r.status||(r.medStatus?MP(r)+': '+r.medStatus:'');
+const lwPlan=r=>r.plan&&r.medDate&&r.plan!==r.medDate?r.plan+' / '+MP(r)+': '+r.medDate:r.plan||r.medDate||'';
 function miss(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
  if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.status==='Extra note only'&&!r.extra)m.push('extra note');if(r.medStatus==='Extra note only'&&!r.medExtra)m.push('Medical/Personnel note');if(r.medAmt||r.medStatus){const q=MS.find(x=>x[0]===r.medStatus);if(!q)m.push('Medical/Personnel feedback');else if(q[1]&&!r.medDate)m.push('Medical/Personnel date')}return m.length?'Missing: '+m.join(', '):''}
 const done=r=>r.status&&!miss(r);
@@ -196,7 +196,8 @@ const typeOf=r=>(r.service||'').trim()||r.medType||(r.medMgr?'Payroll + Medical/
 //  - Medical/Personnel feedback is always in its own "Medical / Personnel notes" column when the line also has Finance feedback.
 //  - A line with only Medical/Personnel feedback shows it in Status / Notes / Planned date (so it is not repeated).
 // Finance feedback and Medical/Personnel feedback sit side by side in ONE Notes cell, separated by " / ", the second one starting with "Medical - Personnel:".
-const MP='Medical - Personnel';
+// The label in front of the Medical/Personnel feedback is the word chosen in "Invoice type" (Medical or Personnel); if none was chosen, the Service type; otherwise Medical - Personnel.
+const MP=r=>String(r&&r.medType||'').trim()||(/^(medical|personnel)$/i.test(String(r&&r.service||'').trim())?String(r.service).trim():'Medical - Personnel');
 const exportNote=r=>lwText(r);
 const exportMedNote=r=>'';
 const exportStatus=r=>r.status||r.medStatus||'';
