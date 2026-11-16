@@ -263,7 +263,7 @@ function vals(el,base){const r={...base};el.querySelectorAll('[data-k]').forEach
 function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
  const show={date:s&&s[1],amt:i>=0&&i<3,rem:i>=0&&i<3,plan:(s&&s[3])||(i>=0&&i<3&&r.rem==='plan')};
  el.querySelectorAll('[data-f]').forEach(d=>d.classList.toggle('hid',!show[d.dataset.f]));
- const np=el.querySelector('[data-n="p"]');if(!np.querySelector('textarea'))np.textContent=note(r)||'The note for Finance appears here.';
+ const np=el.querySelector('[data-n="p"]');if(!np.querySelector('textarea'))np.textContent=lwText(r)||'The note for Finance appears here.';
  const mn=medNote(r),me=el.querySelector('[data-n="m"]');if(!me.querySelector('textarea'))me.textContent=mn||'The Medical/Personnel note appears here.';
  el.querySelectorAll('[data-edit]').forEach(b=>b.classList.toggle('hid',!isOwnerUI));const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
  ['date','plan','medDate'].forEach(k=>{const i=el.querySelector('[data-k="'+k+'"]');if(!i)return;const s=i.parentNode.querySelector('.wd');if(s)s.textContent=r[k]?DW(r[k]).split(',')[0]:''});
