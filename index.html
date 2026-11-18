@@ -50,10 +50,10 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <div id="chm" class="err"></div></div></div>
 <header><h1><span class="logo">P</span>Outstanding invoices – feedback collector <span class="sm" id="rd"></span> <span class="sm" id="conn"></span></h1>
 <div class="bar"><label style="margin:0">I’m <select id="who"></select></label>
-<label style="margin:0"><input type="checkbox" id="pend"> pending only</label>
+<label style="margin:0"><input type="checkbox" id="pend"> Pending only</label>
 <div class="prog"><i id="pb"></i></div><span id="pt" class="sm"></span>
 <span id="me" class="sm"></span> <button class="alt inst hid" type="button">Install app</button> <button id="ffb" class="alt hid" type="button">&#128193; Files folder</button> <button id="chb" class="alt" type="button">Change code</button> <button id="olog" class="alt" type="button">Sign out</button></div></header>
-<main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="own">Owner tools</span><span class="chip" data-t="bk">Backup</span><span class="chip" data-t="lw">Last week</span><span class="chip" data-t="cd">Company details</span><span class="chip" data-t="perm">Permissions</span></div>
+<main><div class="chips hid" id="tabs"><span class="chip on" data-t="fb">Feedback</span><span class="chip" data-t="own">Owner tools</span><span class="chip" data-t="bk">Backup</span><span class="chip" data-t="lw">Last week</span><span class="chip" data-t="cd">Company details</span><span class="chip" data-t="log">Feedback log</span><span class="chip" data-t="perm">Permissions</span></div>
 <div class="note hid" id="lockbar"><b>Editing is closed.</b> Yousra has locked this week’s feedback, so you can only read it.</div>
 <div class="note hid" id="ready"><b>All feedback is complete – ready for your review.</b> You can download the sheet from Owner tools.</div>
 <div class="bar" style="margin:8px 0"><input id="q" type="search" placeholder="Search company…" autocomplete="off"></div>
@@ -79,12 +79,16 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <p class="sm"><b>Files folder.</b> Paste the link of the online folder (OneDrive, SharePoint or Google Drive) where the reports and backups are kept. The “Files folder” button at the top then opens it in one click. Tip: choose the same folder, synced to your computer, as the Backup folder above so everything lands in one place.</p>
 <p><input id="ffu" type="url" placeholder="https://…" style="width:70%"> <button id="ffs" class="alt" type="button">Save</button> <span id="ffm" class="sm"></span></p>
 </div>
+<div id="plog" class="hid"><div class="name">Feedback log</div>
+<p class="sm">Who added or edited feedback, and when – newest first. Times are Cairo time.</p>
+<div class="bar" style="margin:8px 0"><input id="lgs" type="search" placeholder="Search name or company…" autocomplete="off"></div>
+<div id="lgl"><p class="sm">Loading…</p></div></div>
 <div id="pcd" class="hid"><div class="name">Company details</div>
 <p class="sm"><b>Company details (the ℹ️ button on each company).</b> Upload the companies Excel sheet (the file name can be anything). Only these columns are kept: Supervisor Team, Account Holder Name, Payment Date, Client Name, Client Title, Client Email, Client Mobile Number (plus the company name, used for matching). After the upload the app matches the sheet with the Outstanding companies and fills an <b>empty</b> Payroll manager from the sheet when it is sure. Anything it is not sure about is shown here for you to decide.</p>
 <p><input type="file" id="cdf" accept=".xlsx" class="hid"><button id="cdb" class="alt" type="button">Upload companies sheet</button> <button id="cdr" class="alt" type="button">Check matching now</button> <span id="cdm" class="sm"></span></p>
 <div id="cdp"></div>
 <p class="sm" style="margin-top:12px"><b>All Outstanding companies.</b> Search a company and press Edit to type or change its details – also for companies that have no data.</p>
-<div class="bar" style="margin:8px 0"><input id="cds" type="search" placeholder="Search company…" autocomplete="off"></div>
+<div class="bar" style="margin:8px 0"><input id="cds" type="search" placeholder="Search company…" autocomplete="off"> <select id="cdsup"><option value="">All supervisors</option></select></div>
 <div id="cdl"><p class="sm">Loading…</p></div></div>
 <section id="cdalert" class="card hid" style="border-left-color:var(--sun);cursor:pointer"></section>
 <div id="list"><p class="sm">Loading…</p></div>
@@ -126,6 +130,7 @@ const ST=[
 ['Stamp Tax',0,0,0,()=>'Amount related to Stamp Tax'],
 ['Not payroll invoices',0,0,0,()=>'Not related to Payroll Invoices'],
 ['Escalated to Mr. Sherif',0,0,0,()=>'Feedback with Mr. Sherif'],
+['As per Client Request cancel the Invoice',0,0,0,()=>'As per Client Request cancel the Invoice'],
 ['Within payment term',0,0,0,r=>`Payment term ${r.term} days as per client’s history`],
 ['Date only',0,0,1,r=>DW(r.plan,'[date?]')],
 ['Extra note only',0,0,0,r=>r.extra||'[note?]']];
@@ -135,7 +140,7 @@ function autoNote(r){const i=ST.findIndex(s=>s[0]===r.status);if(i<0)return '';l
  if(i<3&&r.rem&&REM[r.rem])t+=', for the remaining '+REM[r.rem](r);
  if(r.extra&&r.status!=='Extra note only')t+=' | '+r.extra;
  return t}
-const MS=[['Transfer done',1,r=>`Transfer done on ${D(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${D(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${D(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision'],['Date only',1,r=>DW(r.medDate,'[date?]')],['Extra note only',0,r=>r.medExtra||'[note?]'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`]];
+const MS=[['Transfer done',1,r=>`Transfer done on ${D(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${D(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${D(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision'],['Date only',1,r=>DW(r.medDate,'[date?]')],['Extra note only',0,r=>r.medExtra||'[note?]'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`],['As per Client Request cancel the Invoice',0,()=>'As per Client Request cancel the Invoice']];
 function autoMed(r){const s=MS.find(x=>x[0]===r.medStatus);if(!s&&!r.medAmt)return r.medExtra||'';
  return (s?s[2](r):'[feedback?]')+(r.medExtra&&r.medStatus!=='Extra note only'?' | '+r.medExtra:'')}
 // The owner can edit the generated text. The edit is used only while the automatic text it was based on has not changed.
@@ -165,13 +170,14 @@ async function api(method,path,body){
  const u=new URL(path,'http://x'),p=u.pathname;
  if(p==='/api/login'){const {error}=await sb.auth.signInWithPassword({email:String(body.email||'').trim().toLowerCase(),password:normCode(body.code)});if(error){if(!error.status||/fetch|network/i.test(error.message))throw fail('Cannot reach the server. Check your internet connection, or ask IT to allow *.supabase.co.',0);throw fail('Wrong email or access code.',403)}return {ok:true}}
  if(p==='/api/logout'){await sb.auth.signOut();return {ok:true}}
- const {data:{session}}=await sb.auth.getSession();if(!session){showLogin();throw fail('sign in required',401)}
+ const {data:{session}}=await sb.auth.getSession();if(!session){showLogin();throw fail('Sign in required',401)}
  if(p==='/api/me')return rpc('api_me');
  if(p==='/api/sync')return rpc('api_sync',{p_since:+u.searchParams.get('since')||0,p_epoch:u.searchParams.get('epoch')||''});
  const m=p.match(/^\/api\/row\/(c\d+)$/);if(m)return rpc('api_save_row',{p_id:m[1],p_data:body});
  if(p==='/api/meta')return rpc('api_set_meta',{p_date:body.date||''});
  const mi=p.match(/^\/api\/info\/(c\d+)$/);if(mi)return rpc('api_company_info',{p_id:mi[1]});
  if(p==='/api/cinfo')return rpc('api_save_company_info',{p_rows:body.rows});
+ if(p==='/api/fblog')return rpc('api_fb_log',{p_limit:2000});
  if(p==='/api/cinfo/list')return rpc('api_company_list');
  if(p==='/api/cinfo/review')return rpc('api_company_info_review');
  if(p==='/api/cinfo/fill')return rpc('api_fill_company_managers');
@@ -187,7 +193,7 @@ async function api(method,path,body){
  if(p==='/api/manager')return rpc('api_set_manager',{p_id:body.id,p_mgr:body.mgr,p_med:body.med});
  if(p==='/api/codes'){const {data,error}=await sb.functions.invoke('set-code',{body:{email:body.email,code:body.code||''}});
   if(error){let msg=error.message;try{msg=(await error.context.json()).error||msg}catch(e){}throw fail(msg,400)}return data}
- throw fail('not found',404)}
+ throw fail('Not found',404)}
 const nk=s=>String(s||'').toLowerCase().replace(/\b(mr|mrs|ms|dr|eng)\b/g,' ').replace(/[^a-z؀-ۿ]/g,'').replace(/m[ou]h?a?m+[ae]d/g,'mohamed').replace(/ee|ie|ei|y/g,'i').replace(/(.)\1+/g,'$1');
 const typeOf=r=>(r.service||'').trim()||r.medType||(r.medMgr?'Payroll + Medical/Personnel':'Payroll');
 // What the downloaded sheet shows. Nothing that was written is dropped, and it does not depend on the manager names:
@@ -282,7 +288,7 @@ function stats(){const all=Object.values(rows),cn=canonNames(all),mine=all.filte
  const ms={};all.forEach(r=>{const L=[...new Set([r.mgr,r.medMgr].filter(Boolean).map(n=>cn[nk(n)]))];(L.length?L:['—']).forEach(m=>{(ms[m]=ms[m]||[0,0])[1]++;if(done(r))ms[m][0]++})}); // a line counts for its Payroll manager AND its Medical/Personnel manager
  $('chips').innerHTML='<span class="chip'+(!who?' on':'')+'" data-m="">Show all ('+all.length+')</span>'+Object.entries(ms).sort((a,b)=>(a[1][1]-a[1][0])-(b[1][1]-b[1][0])).reverse().map(([m,v])=>`<span class="chip${who&&nk(m)===nk(who)?' on':''}" data-m="${esc(m)}">${esc(m)} ${v[0]}/${v[1]}</span>`).join('');
  const sel=$('who'),mg=[...new Set(all.map(r=>r.mgr).concat(all.map(r=>r.medMgr)).filter(Boolean).map(n=>cn[nk(n)]))].sort();
- sel.innerHTML='<option value="">everyone</option>'+mg.map(m=>`<option${who&&nk(m)===nk(who)?' selected':''}>${esc(m)}</option>`).join('')}
+ sel.innerHTML='<option value="">Everyone</option>'+mg.map(m=>`<option${who&&nk(m)===nk(who)?' selected':''}>${esc(m)}</option>`).join('')}
 const focusedCard=()=>document.activeElement&&document.activeElement.closest&&document.activeElement.closest('.card');
 
 function markDirty(el,on){el.classList.toggle('dirty',on);if(on)el.querySelector('.sv').textContent='Unsaved changes – press Save'}
@@ -335,7 +341,7 @@ $('who').onchange=e=>setWho(e.target.value);$('q').oninput=renderAll;$('pend').o
 $('chips').onclick=e=>{const m=e.target.dataset.m;if(m!==undefined)setWho(m)};
 
 async function sync(full){
- let d;try{d=await api('GET','/api/sync?since='+(full?0:ver)+'&epoch='+encodeURIComponent(epoch));$('conn').textContent=''}catch(x){if(x.status!==401)$('conn').textContent='· offline, retrying…';return}
+ let d;try{d=await api('GET','/api/sync?since='+(full?0:ver)+'&epoch='+encodeURIComponent(epoch));$('conn').textContent=''}catch(x){if(x.status!==401)$('conn').textContent='· Offline, retrying…';return}
  ver=d.ver;epoch=d.epoch;meta=d.meta||{};$('ready').classList.toggle('hid',!d.ready);
  $('rd').textContent=meta.date?'· report of '+D(meta.date):'';if(document.activeElement!==$('rdi'))$('rdi').value=meta.date||'';
  let re=false;
@@ -358,7 +364,7 @@ function permRow(r){const tr=document.createElement('tr');
  $('permt').tBodies[0].appendChild(tr)}
 // The name shown next to each email comes from the Permissions table: the supervisor, or "<supervisor> (delegate)" for a delegate email.
 function codeRows(list,prm,vws){const nm={};(vws||[]).forEach(v=>{const e=String(v.email||'').trim().toLowerCase();if(e)nm[e]=(v.name?v.name+' ':'')+'(read-only viewer)'});(prm||[]).forEach(p=>{const s=String(p.supervisor||'').trim();[[p.email,s],[p.delegate,s?s+' (delegate)':'']].forEach(([e,n])=>{e=String(e||'').trim().toLowerCase();if(e&&n)nm[e]=nm[e]?nm[e]+' / '+n:n})});
- $('codet').tBodies[0].innerHTML=list.map((x,i)=>`<tr><td>${esc(x.email)}</td><td>${esc(nm[String(x.email||'').toLowerCase()]||(i===0?'Owner':''))}</td><td class="sm">${x.hasCode?'code set':'no code yet'}</td><td><button class="alt" type="button" data-code="${esc(x.email)}">New code</button></td><td><input data-ci="${esc(x.email)}" placeholder="type a code" size="18" autocomplete="off"> <button class="alt" type="button" data-set="${esc(x.email)}">Set</button> <b data-shown="${esc(x.email)}"></b></td></tr>`).join('')}
+ $('codet').tBodies[0].innerHTML=list.map((x,i)=>`<tr><td>${esc(x.email)}</td><td>${esc(nm[String(x.email||'').toLowerCase()]||(i===0?'Owner':''))}</td><td class="sm">${x.hasCode?'Code set':'No code yet'}</td><td><button class="alt" type="button" data-code="${esc(x.email)}">New code</button></td><td><input data-ci="${esc(x.email)}" placeholder="Type a code" size="18" autocomplete="off"> <button class="alt" type="button" data-set="${esc(x.email)}">Set</button> <b data-shown="${esc(x.email)}"></b></td></tr>`).join('')}
 function viewRow(r){const tr=document.createElement('tr');tr.innerHTML=`<td><input data-v="name" value="${esc(r.name)}"></td><td><input data-v="email" type="email" value="${esc(r.email)}"></td><td><button class="alt" type="button" data-vsend="1" title="Download the app as an HTML file and open an email to this person">Send app</button></td><td><button class="alt" type="button" data-vdel="1" aria-label="Remove row">×</button></td>`;$('viewt').tBodies[0].appendChild(tr)}
 async function loadPerm(){const r=await api('GET','/api/users');$('permt').tBodies[0].innerHTML='';(r.rows.length?r.rows:[{}]).forEach(permRow);$('viewt').tBodies[0].innerHTML='';(r.viewers||[]).forEach(viewRow);codeRows(r.codes||[],r.rows,r.viewers)}
 $('vadd').onclick=()=>viewRow({});$('viewt').onclick=e=>{if(e.target.dataset.vsend)sendApp(e.target,true);if(e.target.dataset.vdel)e.target.closest('tr').remove()};
@@ -367,7 +373,7 @@ $('vs').onclick=async()=>{$('vm').textContent='';const rows=[...$('viewt').tBodi
 $('codet').onclick=async e=>{const em=e.target.dataset.code||e.target.dataset.set;if(!em)return;
  const mine=e.target.dataset.set?[...document.querySelectorAll('[data-ci]')].find(x=>x.dataset.ci===em).value.trim():'';
  if(e.target.dataset.set&&!mine){alert('Type the code you want first (at least 8 letters or digits).');return}
- try{const r=await api('POST','/api/codes',{email:em,code:mine});const b=[...document.querySelectorAll('[data-shown]')].find(x=>x.dataset.shown===em);b.textContent=r.code;e.target.closest('tr').children[2].textContent='code set';[...document.querySelectorAll('[data-ci]')].find(x=>x.dataset.ci===em).value='';
+ try{const r=await api('POST','/api/codes',{email:em,code:mine});const b=[...document.querySelectorAll('[data-shown]')].find(x=>x.dataset.shown===em);b.textContent=r.code;e.target.closest('tr').children[2].textContent='Code set';[...document.querySelectorAll('[data-ci]')].find(x=>x.dataset.ci===em).value='';
   const sel=getSelection(),rg=document.createRange();rg.selectNodeContents(b);sel.removeAllRanges();sel.addRange(rg)}catch(x){alert(x.message)}};
 $('padd').onclick=()=>permRow({});
 const okEmail=s=>/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(s||'');
@@ -377,7 +383,7 @@ const okEmail=s=>/^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$/.test(s||'');
 async function sendApp(btn,viewer){const tr=btn.closest('tr'),q=(k,v)=>{const e=tr.querySelector('[data-p='+k+']')||tr.querySelector('[data-v='+(v||k)+']');return e?e.value.trim():''},name=q('supervisor','name'),em=q('email'),dl=q('delegate'),um=$(viewer?'vm':'um');
  if(!okEmail(em)){um.textContent='Write this person’s email first.';return}
  try{const link=location.protocol==='https:'?location.origin+location.pathname:String((me&&me.appUrl)||'');
-  if(!/^https:\/\/[^\s<>"']+$/.test(link))throw new Error('open the app from its https link first');
+  if(!/^https:\/\/[^\s<>"']+$/.test(link))throw new Error('Open the app from its https link first');
   const go=link+'?e='+encodeURIComponent(em).replace(/'/g,'%27'),
    html='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Outstanding invoices</title>\n<meta http-equiv="refresh" content="0;url='+esc(go)+'">\n<style>body{font-family:system-ui,Arial,sans-serif;background:#0e1522;color:#f1f5fb;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0;text-align:center;font-size:18px}a{color:#8fb2f5}</style></head>\n<body><div><p>Opening the Outstanding invoices app…</p><p><a href="'+esc(go)+'">If it does not open, click here</a></p></div>\n<script>location.replace('+JSON.stringify(go).replace(/</g,'\\u003c')+')<\/script></body></html>';
   saveFile('Outstanding_feedback.html',html,'text/html;charset=utf-8');
@@ -392,9 +398,9 @@ $('us').onclick=async()=>{$('um').textContent='';
  try{await api('PUT','/api/users',{rows});await loadPerm();$('um').textContent='Saved.'}catch(x){$('um').textContent='Failed: '+x.message}};
 function showTab(t){const fbv=t==='fb',ow=!!(me&&me.owner);if(t==='perm')$('ready').classList.add('hid');
  ['chips','list'].forEach(i=>$(i).classList.toggle('hid',!fbv));$('q').parentNode.classList.toggle('hid',!fbv);$('permv').classList.toggle('hid',t!=='perm');
- [['own','own'],['bk','pbk'],['lw','plw'],['cd','pcd']].forEach(([k,id])=>$(id).classList.toggle('hid',t!==k||!ow));
+ [['own','own'],['bk','pbk'],['lw','plw'],['cd','pcd'],['log','plog']].forEach(([k,id])=>$(id).classList.toggle('hid',t!==k||!ow));
  document.querySelectorAll('#tabs .chip').forEach(x=>x.classList.toggle('on',x.dataset.t===t));
- if(t==='perm')loadPerm().catch(()=>{});else if(t==='lw')lwSummary();else if(t==='cd')cdList().catch(x=>{$('cdl').innerHTML='<p class="sm">'+esc(x.message)+'</p>'})}
+ if(t==='perm')loadPerm().catch(()=>{});else if(t==='lw')lwSummary();else if(t==='log')logLoad().catch(x=>{$('lgl').innerHTML='<p class="sm">'+esc(x.message)+'</p>'});else if(t==='cd')cdList().catch(x=>{$('cdl').innerHTML='<p class="sm">'+esc(x.message)+'</p>'})}
 $('tabs').onclick=e=>{if(e.target.dataset.t)showTab(e.target.dataset.t)};
 function showChange(forced){$('login').classList.add('hid');$('chg').classList.remove('hid');$('chcancel').classList.toggle('hid',!!forced);$('chm').textContent='';
  $('cht').textContent=forced?'The code you received is temporary. Choose a code that only you know (at least 8 letters or digits). You will use it every time you sign in.':'Choose a new access code (at least 8 letters or digits).'}
@@ -515,14 +521,20 @@ function cdRender(){const {rv,fl}=cdState,box=$('cdp'),pend=rv.pending||[];
  api('GET','/api/users').then(u=>{const names=(u.rows||[]).map(x=>x.supervisor).filter(Boolean);box.querySelectorAll('[data-am]').forEach(s=>s.innerHTML='<option value="">— choose a manager —</option>'+names.map(n=>'<option>'+esc(n)+'</option>').join(''))}).catch(()=>{});
  const n=pend.length+ask.length,al=$('cdalert');al.classList.toggle('hid',!n);al.textContent=n?n+' compan'+(n>1?'ies need':'y needs')+' your decision (company details / manager). Open the Company details tab.':''}
 $('cdalert').onclick=()=>showTab('cd');
-const CDF=[['ctype','Company Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']];
+let lgAll=[];
+async function logLoad(){lgAll=await api('POST','/api/fblog',{});lgFilter()}
+function lgFilter(){const q=$('lgs').value.trim().toLowerCase(),L=lgAll.filter(x=>!q||(x.name+' '+x.email+' '+x.customer).toLowerCase().includes(q));
+ $('lgl').innerHTML=L.length?'<div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Who</th><th>Company</th><th>Action</th></tr></thead><tbody>'+L.map(x=>'<tr><td>'+esc(whenTxt(x.at))+'</td><td>'+esc(x.name||'—')+'<div class="sm">'+esc(x.email)+'</div></td><td>'+esc(x.customer)+'</td><td>'+esc(x.action)+'</td></tr>').join('')+'</tbody></table></div>':'<p class="sm">No feedback has been saved yet.</p>'}
+$('lgs').oninput=lgFilter;
+const CDF=[['ctype','Company Service Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']];
 let cdAll=[];
-async function cdList(){cdAll=await api('POST','/api/cinfo/list',{});cdFilter()}
+async function cdList(){cdAll=await api('POST','/api/cinfo/list',{});const cur=$('cdsup').value,sp=[...new Set(cdAll.map(c=>c.sup).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+ $('cdsup').innerHTML='<option value="">All supervisors</option>'+sp.map(x=>'<option'+(x===cur?' selected':'')+'>'+esc(x)+'</option>').join('');cdFilter()}
 function cdFilter(){const q=$('cds').value.trim().toLowerCase(),box=$('cdl');
- const L=cdAll.map((c,i)=>[c,i]).filter(([c])=>!q||c.name.toLowerCase().includes(q)||(c.sup||'').toLowerCase().includes(q));
+ const sv=$('cdsup').value,L=cdAll.map((c,i)=>[c,i]).filter(([c])=>(!q||c.name.toLowerCase().includes(q)||(c.sup||'').toLowerCase().includes(q))&&(!sv||c.sup===sv));
  box.innerHTML=L.length?L.map(([c,i])=>'<div class="card" data-li="'+i+'" style="margin:6px 0"><div class="top"><span class="name">'+esc(c.name)+'</span><button type="button" class="alt" data-cedit="1">Edit</button></div><div data-cbody="1">'+
   (c.found?CDF.map(([k,l])=>'<div class="sm"><b>'+l+' :</b> '+(esc(c[k])||'—')+'</div>').join(''):'<div class="sm">'+(c.noInfo?'No details kept for this company.':'No data for this company.')+' Press Edit to type it.</div>')+'</div></div>').join(''):'<p class="sm">Nothing to show.</p>'}
-$('cds').oninput=cdFilter;
+$('cds').oninput=cdFilter;$('cdsup').onchange=cdFilter;
 $('cdl').addEventListener('click',async e=>{const t=e.target,card=t.closest('[data-li]');if(!card)return;const c=cdAll[+card.dataset.li];
  if(t.dataset.cedit){const bd=card.querySelector('[data-cbody]');bd.innerHTML=CDF.map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%" value="'+esc(c.found?c[k]:'')+'">').join('')+'<p><button type="button" data-csave2="1">Save</button> <button type="button" class="alt" data-ccancel="1">Cancel</button> <span class="sm" data-cmsg="1"></span></p>';return}
  if(t.dataset.ccancel){cdFilter();return}
@@ -533,7 +545,7 @@ $('cdp').addEventListener('click',async e=>{const t=e.target,card=t.closest('[da
  if(card.dataset.pi!=null){const p=cdState.rv.pending[+card.dataset.pi];
   if(t.dataset.cuse){const k=card.querySelector('[data-ck]').value;if(!k){alert('Choose a company from the list first.');return}await api('POST','/api/cinfo/alias',{name:p.name,ckey:k})}
   else if(t.dataset.cnone){await api('POST','/api/cinfo/alias',{name:p.name,none:true})}
-  else if(t.dataset.cman){const f=card.querySelector('[data-cform]');f.classList.remove('hid');f.innerHTML=[['ctype','Company Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']].map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%">').join('')+'<p><button type="button" data-csave="1">Save details</button></p>';return}
+  else if(t.dataset.cman){const f=card.querySelector('[data-cform]');f.classList.remove('hid');f.innerHTML=[['ctype','Company Service Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']].map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%">').join('')+'<p><button type="button" data-csave="1">Save details</button></p>';return}
   else if(t.dataset.csave){const o={name:p.name};card.querySelectorAll('[data-mf]').forEach(i=>o[i.dataset.mf]=i.value.trim());await api('POST','/api/cinfo/manual',o)}
   else return;
  }else{const a=cdState.fl.ask.filter(x=>x.why!=='notfound'&&x.why!=='nodetails')[+card.dataset.ai];
