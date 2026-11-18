@@ -87,8 +87,9 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <p class="sm"><b>Company details (the ℹ️ button on each company).</b> Upload the companies Excel sheet (the file name can be anything). Only these columns are kept: Supervisor Team, Account Holder Name, Payment Date, Client Name, Client Title, Client Email, Client Mobile Number (plus the company name, used for matching). After the upload the app matches the sheet with the Outstanding companies and fills an <b>empty</b> Payroll manager from the sheet when it is sure. Anything it is not sure about is shown here for you to decide.</p>
 <p><input type="file" id="cdf" accept=".xlsx" class="hid"><button id="cdb" class="alt" type="button">Upload companies sheet</button> <button id="cdr" class="alt" type="button">Check matching now</button> <span id="cdm" class="sm"></span></p>
 <div id="cdp"></div>
-<p class="sm" style="margin-top:12px"><b>All Outstanding companies.</b> Search a company and press Edit to type or change its details – also for companies that have no data.</p>
+<p class="sm" style="margin-top:12px"><b>All companies.</b> Every company of the sheet, plus the Outstanding companies that are not in the sheet. Companies with the Outstanding tag are on this week’s list. Search a company, or choose a supervisor, and press Edit to type or change its details – also for companies that have no data.</p>
 <div class="bar" style="margin:8px 0"><input id="cds" type="search" placeholder="Search company…" autocomplete="off"> <select id="cdsup"><option value="">All supervisors</option></select></div>
+<p class="sm" id="cdc"></p>
 <div id="cdl"><p class="sm">Loading…</p></div></div>
 <section id="cdalert" class="card hid" style="border-left-color:var(--sun);cursor:pointer"></section>
 <div id="list"><p class="sm">Loading…</p></div>
@@ -178,6 +179,7 @@ async function api(method,path,body){
  const mi=p.match(/^\/api\/info\/(c\d+)$/);if(mi)return rpc('api_company_info',{p_id:mi[1]});
  if(p==='/api/cinfo')return rpc('api_save_company_info',{p_rows:body.rows});
  if(p==='/api/fblog')return rpc('api_fb_log',{p_limit:2000});
+ if(p==='/api/cinfo/edit')return rpc('api_edit_company',{p_key:body.key,p_ctype:body.ctype||'',p_sup:body.sup||'',p_account:body.account||'',p_pay_date:body.pay_date||'',p_c_name:body.c_name||'',p_c_title:body.c_title||'',p_c_email:body.c_email||'',p_c_mobile:body.c_mobile||''});
  if(p==='/api/cinfo/list')return rpc('api_company_list');
  if(p==='/api/cinfo/review')return rpc('api_company_info_review');
  if(p==='/api/cinfo/fill')return rpc('api_fill_company_managers');
@@ -528,18 +530,22 @@ function lgFilter(){const q=$('lgs').value.trim().toLowerCase(),L=lgAll.filter(x
 $('lgs').oninput=lgFilter;
 const CDF=[['ctype','Company Service Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']];
 let cdAll=[];
-async function cdList(){cdAll=await api('POST','/api/cinfo/list',{});const cur=$('cdsup').value,sp=[...new Set(cdAll.map(c=>c.sup).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
- $('cdsup').innerHTML='<option value="">All supervisors</option>'+sp.map(x=>'<option'+(x===cur?' selected':'')+'>'+esc(x)+'</option>').join('');cdFilter()}
+// The same supervisor can be spelled differently in the sheet (Hesham / Hisham, Mr.Waheed / Mr. Waheed): they count as ONE person.
+const sk=x=>nk(x).replace(/e/g,'i').replace(/(.)\1+/g,'$1');
+async function cdList(){cdAll=await api('POST','/api/cinfo/list',{});const cur=$('cdsup').value,cnt={};
+ cdAll.forEach(c=>{if(!c.sup)return;const k=sk(c.sup);cnt[k]=cnt[k]||{};cnt[k][c.sup]=(cnt[k][c.sup]||0)+1});
+ const sp=Object.entries(cnt).map(([k,v])=>[k,Object.entries(v).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))[0][0]]).sort((a,b)=>a[1].localeCompare(b[1]));
+ $('cdsup').innerHTML='<option value="">All supervisors</option>'+sp.map(([k,n])=>'<option value="'+esc(k)+'"'+(k===cur?' selected':'')+'>'+esc(n)+'</option>').join('');cdFilter()}
 function cdFilter(){const q=$('cds').value.trim().toLowerCase(),box=$('cdl');
- const sv=$('cdsup').value,L=cdAll.map((c,i)=>[c,i]).filter(([c])=>(!q||c.name.toLowerCase().includes(q)||(c.sup||'').toLowerCase().includes(q))&&(!sv||c.sup===sv));
- box.innerHTML=L.length?L.map(([c,i])=>'<div class="card" data-li="'+i+'" style="margin:6px 0"><div class="top"><span class="name">'+esc(c.name)+'</span><button type="button" class="alt" data-cedit="1">Edit</button></div><div data-cbody="1">'+
-  (c.found?CDF.map(([k,l])=>'<div class="sm"><b>'+l+' :</b> '+(esc(c[k])||'—')+'</div>').join(''):'<div class="sm">'+(c.noInfo?'No details kept for this company.':'No data for this company.')+' Press Edit to type it.</div>')+'</div></div>').join(''):'<p class="sm">Nothing to show.</p>'}
+ const sv=$('cdsup').value,L=cdAll.map((c,i)=>[c,i]).filter(([c])=>(!q||c.name.toLowerCase().includes(q)||(c.sup||'').toLowerCase().includes(q))&&(!sv||sk(c.sup)===sv));
+ box.innerHTML=L.length?L.map(([c,i])=>'<div class="card" data-li="'+i+'" style="margin:6px 0"><div class="top"><span class="name">'+esc(c.name)+(c.outstanding?' <span class="badge">Outstanding</span>':'')+'</span><button type="button" class="alt" data-cedit="1">Edit</button></div><div data-cbody="1">'+
+  (c.found?CDF.map(([k,l])=>'<div class="sm"><b>'+l+' :</b> '+(esc(c[k])||'—')+'</div>').join(''):'<div class="sm">'+(c.noInfo?'No details kept for this company.':'No data for this company.')+' Press Edit to type it.</div>')+'</div></div>').join(''):'<p class="sm">Nothing to show.</p>';$('cdc').textContent=L.length+' of '+cdAll.length+' companies'}
 $('cds').oninput=cdFilter;$('cdsup').onchange=cdFilter;
 $('cdl').addEventListener('click',async e=>{const t=e.target,card=t.closest('[data-li]');if(!card)return;const c=cdAll[+card.dataset.li];
  if(t.dataset.cedit){const bd=card.querySelector('[data-cbody]');bd.innerHTML=CDF.map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%" value="'+esc(c.found?c[k]:'')+'">').join('')+'<p><button type="button" data-csave2="1">Save</button> <button type="button" class="alt" data-ccancel="1">Cancel</button> <span class="sm" data-cmsg="1"></span></p>';return}
  if(t.dataset.ccancel){cdFilter();return}
  if(t.dataset.csave2){const o={name:c.name};card.querySelectorAll('[data-mf]').forEach(i=>o[i.dataset.mf]=i.value.trim());t.disabled=true;
-  try{await api('POST','/api/cinfo/manual',o);await cdList();companyReview(false).catch(()=>{})}catch(x){card.querySelector('[data-cmsg]').textContent=x.message;t.disabled=false}}});
+  try{if(c.key){o.key=c.key;await api('POST','/api/cinfo/edit',o)}else await api('POST','/api/cinfo/manual',o);await cdList();companyReview(false).catch(()=>{})}catch(x){card.querySelector('[data-cmsg]').textContent=x.message;t.disabled=false}}});
 $('cdp').addEventListener('click',async e=>{const t=e.target,card=t.closest('[data-pi],[data-ai]');if(!card)return;
  try{
  if(card.dataset.pi!=null){const p=cdState.rv.pending[+card.dataset.pi];
