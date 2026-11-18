@@ -130,7 +130,7 @@ const ST=[
 ['Stamp Tax',0,0,0,()=>'Amount related to Stamp Tax'],
 ['Not payroll invoices',0,0,0,()=>'Not related to Payroll Invoices'],
 ['Escalated to Mr. Sherif',0,0,0,()=>'Feedback with Mr. Sherif'],
-['As per Client Request cancel the Invoice',0,0,0,()=>'As per Client Request cancel the Invoice'],
+['As Per client request Invoice canceled',0,0,0,()=>'As Per client request Invoice canceled'],
 ['Within payment term',0,0,0,r=>`Payment term ${r.term} days as per client’s history`],
 ['Date only',0,0,1,r=>DW(r.plan,'[date?]')],
 ['Extra note only',0,0,0,r=>r.extra||'[note?]']];
@@ -140,7 +140,7 @@ function autoNote(r){const i=ST.findIndex(s=>s[0]===r.status);if(i<0)return '';l
  if(i<3&&r.rem&&REM[r.rem])t+=', for the remaining '+REM[r.rem](r);
  if(r.extra&&r.status!=='Extra note only')t+=' | '+r.extra;
  return t}
-const MS=[['Transfer done',1,r=>`Transfer done on ${D(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${D(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${D(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision'],['Date only',1,r=>DW(r.medDate,'[date?]')],['Extra note only',0,r=>r.medExtra||'[note?]'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`],['As per Client Request cancel the Invoice',0,()=>'As per Client Request cancel the Invoice']];
+const MS=[['Transfer done',1,r=>`Transfer done on ${D(r.medDate)}`],['Cheque received',1,r=>`CHQ Received on ${D(r.medDate)}`],['Transfer done – waiting to reflect',0,()=>'As per client feedback Transfer done waiting to reflect on our account'],['Planned payment date',1,r=>`Planned to be paid on ${D(r.medDate,'[planned date?]')}`],['Following up – no date yet',0,()=>PEND],['Waiting for client’s response',0,()=>WAIT],['Pending PO',0,r=>`Pending PO from ${r.customer} Side`],['Management decision',0,()=>'Management Decision'],['Date only',1,r=>DW(r.medDate,'[date?]')],['Extra note only',0,r=>r.medExtra||'[note?]'],['Pass-through to Medical company',0,r=>`Just invoice issuing no payment done, it will be paid to Medical company, after collected from ${r.customer}`],['As Per client request Invoice canceled',0,()=>'As Per client request Invoice canceled']];
 function autoMed(r){const s=MS.find(x=>x[0]===r.medStatus);if(!s&&!r.medAmt)return r.medExtra||'';
  return (s?s[2](r):'[feedback?]')+(r.medExtra&&r.medStatus!=='Extra note only'?' | '+r.medExtra:'')}
 // The owner can edit the generated text. The edit is used only while the automatic text it was based on has not changed.
