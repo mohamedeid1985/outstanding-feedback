@@ -1,5 +1,5 @@
 {
-  "name": "Outstanding invoices – feedback collector",
+  "name": "Outstanding Invoices – Feedback Collector",
   "short_name": "Outstanding",
   "description": "Collect feedback on outstanding invoices from the supervisors.",
   "start_url": "./",
