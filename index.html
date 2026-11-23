@@ -102,7 +102,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <table id="viewt"><thead><tr><th>Name</th><th>Email</th><th></th><th></th></tr></thead><tbody></tbody></table>
 <p><button id="vadd" class="alt" type="button">+ Add viewer</button> <button id="vs" type="button">Save viewers</button> <span id="vm" class="sm"></span></p>
 <div class="name" style="margin-top:14px">Exception approver</div>
-<p class="sm">The person who approves an exception to pay a company. Each company card has a <b>✉️ Forward</b> button: when a supervisor or you press it, an email is sent <b>automatically</b> to this person, with the subject “Company name – Approve Transfer”, the company name and the outstanding amount. The email is sent through a Power Automate flow (When an HTTP request is received → Send an email (V2): To = <i>to</i>, Subject = <i>subject</i>, Body = <i>bodyHtml</i>). Paste the flow link once. Nothing is sent until someone presses Forward.</p>
+<p class="sm">The person who approves an exception to pay a company. Each company card has a <b>✉️ Forward</b> button: when a supervisor or you press it, an email is sent <b>automatically</b> to this person, with the subject “Company name – Approve Transfer”, the company name and the outstanding amount. The email is sent through a Power Automate flow (When an HTTP request is received → Send an email (V2): To = <i>to</i>, Subject = <i>subject</i>, Body = <i>bodyHtml</i>). Paste the flow link once. <b>Without a flow link</b>, Forward opens a ready-made email (same subject and text) in the person’s mail program and they press Send. Nothing is sent until someone presses Forward.</p>
 <p class="sm">Name <input id="exn" placeholder="Name" style="width:180px"> Email <input id="exe" type="email" list="exl" placeholder="name@company.com" style="width:240px"><datalist id="exl"></datalist></p>
 <p class="sm">Flow link <input id="exu" type="url" placeholder="https://…" style="width:70%"> <button id="exs" type="button">Save</button> <span id="exm" class="sm"></span></p>
 <div class="name" style="margin-top:14px">Access codes</div>
@@ -182,7 +182,7 @@ async function api(method,path,body){
  if(p==='/api/meta')return rpc('api_set_meta',{p_date:body.date||''});
  const mi=p.match(/^\/api\/info\/(c\d+)$/);if(mi)return rpc('api_company_info',{p_id:mi[1]});
  if(p==='/api/cinfo')return rpc('api_save_company_info',{p_rows:body.rows});
- const me2=p.match(/^\/api\/exc\/send\/(c\d+)$/);if(me2)return rpc('api_send_exception',{p_id:me2[1]});
+ const me2=p.match(/^\/api\/exc\/send\/(c\d+)$/);if(me2)return rpc('api_send_exception',{p_id:me2[1],p_draft:!!(body&&body.draft)});
  if(p==='/api/exc/set')return rpc('api_set_exception',{p_name:body.name||'',p_email:body.email||'',p_webhook:body.webhook==null?null:body.webhook});
  if(p==='/api/fblog')return rpc('api_fb_log',{p_limit:2000});
  if(p==='/api/cinfo/edit')return rpc('api_edit_company',{p_key:body.key,p_ctype:body.ctype||'',p_sup:body.sup||'',p_account:body.account||'',p_pay_date:body.pay_date||'',p_c_name:body.c_name||'',p_c_title:body.c_title||'',p_c_email:body.c_email||'',p_c_mobile:body.c_mobile||''});
@@ -379,7 +379,7 @@ function viewRow(r){const tr=document.createElement('tr');tr.innerHTML=`<td><inp
 async function loadPerm(){const r=await api('GET','/api/users');$('permt').tBodies[0].innerHTML='';(r.rows.length?r.rows:[{}]).forEach(permRow);$('viewt').tBodies[0].innerHTML='';(r.viewers||[]).forEach(viewRow);codeRows(r.codes||[],r.rows,r.viewers);const ex=r.exception||{};$('exn').value=ex.name||'';$('exe').value=ex.email||'';$('exu').value='';$('exu').placeholder=ex.hook?'(saved – paste a new link to replace it)':'https://…';
  $('exl').innerHTML=(r.viewers||[]).concat((r.rows||[]).map(x=>({name:x.supervisor,email:x.email}))).filter(x=>x.email).map(x=>'<option value="'+esc(x.email)+'">'+esc(x.name||'')+'</option>').join('')}
 $('exs').onclick=async()=>{$('exm').textContent='';const w=$('exu').value.trim();
- try{await api('POST','/api/exc/set',{name:$('exn').value,email:$('exe').value,webhook:w||null});const m=await api('GET','/api/me');me.exc=m.exc;me.excName=m.excName;await loadPerm();$('exm').textContent='Saved.'+(m.exc?'':' Add the flow link and the email to switch the Forward button on for the supervisors.');renderAll()}catch(x){$('exm').textContent='Failed: '+x.message}};
+ try{await api('POST','/api/exc/set',{name:$('exn').value,email:$('exe').value,webhook:w||null});const m=await api('GET','/api/me');me.exc=m.exc;me.excAuto=m.excAuto;me.excName=m.excName;await loadPerm();$('exm').textContent=!m.exc?'Saved. Write the approver’s email to switch the Forward button on.':(m.excAuto?'Saved. Forward now sends the email automatically.':'Saved. Without a flow link, Forward opens a ready email that the person presses Send on.');renderAll()}catch(x){$('exm').textContent='Failed: '+x.message}};
 $('vadd').onclick=()=>viewRow({});$('viewt').onclick=e=>{if(e.target.dataset.vsend)sendApp(e.target,true);if(e.target.dataset.vdel)e.target.closest('tr').remove()};
 $('vs').onclick=async()=>{$('vm').textContent='';const rows=[...$('viewt').tBodies[0].rows].map(tr=>({name:tr.querySelector('[data-v=name]').value,email:tr.querySelector('[data-v=email]').value})).filter(x=>x.email.trim());
  try{await api('PUT','/api/viewers',{rows});await loadPerm();$('vm').textContent='Saved. Now give each viewer an access code below.'}catch(x){$('vm').textContent='Failed: '+x.message}};
@@ -500,10 +500,13 @@ $('ld').onclick=async()=>{const T=$('ta').value.trim().split(/\r?\n/).map(l=>l.s
 
 // ---- Forward: email the exception approver ("Approve Transfer") for one company
 async function sendExc(id,btn){const r=rows[id];if(!r)return;
- if(!(me&&me.exc)){if(isOwnerUI){alert('The exception email is not set up yet. Choose the person and paste the flow link in the Permissions tab (Exception approver).');showTab('perm')}return}
- if(!confirm('Send an email to '+(me.excName||'the exception approver')+' asking to approve the transfer for:\n\n'+r.customer+' – '+fmt0(r.balance)+' EGP ?'))return;
+ if(!(me&&me.exc)){if(isOwnerUI){alert('Choose the person (name and email) in the Permissions tab, under Exception approver. Add the Power Automate flow link too if you want the email to be sent automatically.');showTab('perm')}return}
+ const auto=!!me.excAuto;
+ if(!confirm((auto?'Send an email to ':'Prepare an email to ')+(me.excName||'the exception approver')+' asking to approve the transfer for:\n\n'+r.customer+' – '+fmt0(r.balance)+' EGP ?'))return;
  btn.disabled=true;
- try{const x=await api('POST','/api/exc/send/'+id,{});await sync(true);const el=document.getElementById(id);if(el){const sv=el.querySelector('.sv');if(sv)sv.textContent='Exception email sent to '+(x.toName||x.to)}}
+ try{const x=await api('POST','/api/exc/send/'+id,{draft:!auto});
+  if(x.draft){const a=document.createElement('a');a.href='mailto:'+x.to+'?subject='+encodeURIComponent(x.subject)+'&body='+encodeURIComponent(String(x.body).replace(/\n/g,'\r\n'));document.body.appendChild(a);a.click();a.remove()}
+  await sync(true);const el=document.getElementById(id);if(el){const sv=el.querySelector('.sv');if(sv)sv.textContent=x.draft?'Email opened for '+(x.toName||x.to)+' – press Send in your mail program':'Exception email sent to '+(x.toName||x.to)}}
  catch(e){alert(e.message)}btn.disabled=false}
 // ---- Company details (ℹ️) and filling an empty Payroll manager from the companies sheet
 async function showInfo(id){const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:#000a;z-index:60;display:flex;align-items:center;justify-content:center;padding:16px';
