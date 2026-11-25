@@ -159,7 +159,10 @@ const lwStat=r=>r.status&&r.medStatus?r.status+' / '+MP(r)+': '+r.medStatus:r.st
 const lwPlan=r=>r.plan&&r.medDate&&r.plan!==r.medDate?r.plan+' / '+MP(r)+': '+r.medDate:r.plan||r.medDate||'';
 function miss(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
  if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.status==='Extra note only'&&!r.extra)m.push('extra note');if(r.medStatus==='Extra note only'&&!r.medExtra)m.push('Medical/Personnel note');if(r.medAmt||r.medStatus){const q=MS.find(x=>x[0]===r.medStatus);if(!q)m.push('Medical/Personnel feedback');else if(q[1]&&!r.medDate)m.push('Medical/Personnel date')}return m.length?'Missing: '+m.join(', '):''}
-const done=r=>r.status&&!miss(r);
+// A line is complete when its Finance feedback is complete, OR when it has no Finance feedback and its Medical/Personnel feedback is complete
+// (a Medical or Personnel line is filled in the Medical / Personnel tab only).
+const medOk=r=>{const q=MS.find(x=>x[0]===r.medStatus);return !!q&&!(q[1]&&!r.medDate)&&!(r.medStatus==='Extra note only'&&!r.medExtra)};
+const done=r=>r.status?!miss(r):medOk(r);
 
 let rows={},who='',meta={},ver=0,epoch='',drafts={},me=null,poll=null;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
