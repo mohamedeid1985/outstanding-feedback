@@ -162,7 +162,13 @@ function kindOf(r){const t=String(r.service||'').toLowerCase(),y=/payroll/.test(
  if(y&&m)return 'both';if(m)return 'med';if(y)return 'fin';
  if(r.medType)return 'med';
  if(r.medMgr)return r.mgr?'both':'med';
- return '';}   // '' = the type is not known: what has been written decides
+ // No type written, but the manager is known: a person who is the Medical/Personnel manager of other lines (and is not the manager of an explicit Payroll line) is a Medical/Personnel manager.
+ if(r.mgr&&medPeople().has(nk(r.mgr)))return 'med';
+ return '';}
+let mpCache=null;
+function medPeople(){if(mpCache)return mpCache;const med=new Set(),pay=new Set();
+ Object.values(rows).forEach(o=>{if(o.medMgr)med.add(nk(o.medMgr));if(o.mgr&&/payroll/i.test(String(o.service||'')))pay.add(nk(o.mgr))});
+ pay.forEach(k=>med.delete(k));return mpCache=med}   // '' = the type is not known: what has been written decides
 function missFin(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
  if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.status==='Extra note only'&&!r.extra)m.push('extra note');
  return m.length?'Missing: '+m.join(', '):''}
@@ -356,7 +362,7 @@ $('list').addEventListener('click',async e=>{const t=e.target;
  if(t.dataset.fbedit){const el=t.closest('.card');editing[el.id]=true;applyLock(el,drafts[el.id]||rows[el.id]);const f=el.querySelector('[data-k]:not([disabled])');if(f)f.focus();return}
  const b=e.target.closest('[data-save]');if(!b)return;const el=b.closest('.card'),id=el.id,r=drafts[id]||rows[id];
  const d={};KEYS.forEach(k=>d[k]=r[k]);d.done=!!done(r);b.disabled=true;
- try{const s=await api('PUT','/api/row/'+id,d);rows[id]=s;delete drafts[id];delete editing[id];markDirty(el,false);applyLock(el,s);
+ try{const s=await api('PUT','/api/row/'+id,d);rows[id]=s;mpCache=null;delete drafts[id];delete editing[id];markDirty(el,false);applyLock(el,s);
   el.querySelector('.sv').textContent='Saved '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});stats()}
  catch(x){if(/closed/i.test(x.message)){el.querySelector('.sv').textContent='Not saved – '+x.message;sync(true)}
   else el.querySelector('.sv').textContent='Not saved – '+x.message+'. Check your connection and try again.'}
@@ -368,7 +374,7 @@ $('chips').onclick=e=>{const m=e.target.dataset.m;if(m!==undefined)setWho(m)};
 
 async function sync(full){
  let d;try{d=await api('GET','/api/sync?since='+(full?0:ver)+'&epoch='+encodeURIComponent(epoch));$('conn').textContent=''}catch(x){if(x.status!==401)$('conn').textContent='· Offline, retrying…';return}
- ver=d.ver;epoch=d.epoch;meta=d.meta||{};$('ready').classList.toggle('hid',!d.ready);
+ ver=d.ver;epoch=d.epoch;meta=d.meta||{};mpCache=null;$('ready').classList.toggle('hid',!d.ready);
  $('rd').textContent=meta.date?'· Report of '+D(meta.date):'';if(document.activeElement!==$('rdi'))$('rdi').value=meta.date||'';
  let re=false;
  if(d.full){rows={};d.rows.forEach(r=>rows[r.id]=r);Object.keys(drafts).forEach(id=>{if(!rows[id]||rows[id].customer!==drafts[id].customer)delete drafts[id]});re=true}
