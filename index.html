@@ -84,7 +84,7 @@ textarea{width:100%;height:90px}.sm{font-size:var(--fs-s);color:var(--mut);line-
 <div class="bar" style="margin:8px 0"><input id="lgs" type="search" placeholder="Search name or company…" autocomplete="off"></div>
 <div id="lgl"><p class="sm">Loading…</p></div></div>
 <div id="pcd" class="hid"><div class="name">Company details</div>
-<p class="sm"><b>Company details (the ℹ️ button on each company).</b> Upload the companies Excel sheet (the file name can be anything). Only these columns are kept: Supervisor Team, Account Holder Name, Payment Date, Client Name, Client Title, Client Email, Client Mobile Number (plus the company name, used for matching). After the upload the app matches the sheet with the Outstanding companies and fills an <b>empty</b> Payroll manager from the sheet when it is sure. Anything it is not sure about is shown here for you to decide.</p>
+<p class="sm"><b>Company details (the ℹ️ button on each company).</b> Upload the companies Excel sheet (the file name can be anything). Only these columns are kept: Company Service Type, Supervisor Team, Account Holder Name, Payment Term, Payment Date, Client Name, Client Title, Client Email, Client Mobile Number (plus the company name, used for matching). After the upload the app matches the sheet with the Outstanding companies and fills an <b>empty</b> Payroll manager from the sheet when it is sure. Anything it is not sure about is shown here for you to decide.</p>
 <p><input type="file" id="cdf" accept=".xlsx" class="hid"><button id="cdb" class="alt" type="button">Upload companies sheet</button> <button id="cdr" class="alt" type="button">Check matching now</button> <span id="cdm" class="sm"></span></p>
 <div id="cdp"></div>
 <p class="sm" style="margin-top:12px"><b>All companies.</b> Every company of the sheet, plus the Outstanding companies that are not in the sheet. Companies with the Outstanding tag are on this week’s list. Search a company, or choose a supervisor, and press Edit to type or change its details – also for companies that have no data.</p>
@@ -205,12 +205,12 @@ async function api(method,path,body){
  const me2=p.match(/^\/api\/exc\/send\/(c\d+)$/);if(me2)return rpc('api_send_exception',{p_id:me2[1],p_draft:!!(body&&body.draft)});
  if(p==='/api/exc/set')return rpc('api_set_exception',{p_name:body.name||'',p_email:body.email||'',p_webhook:body.webhook==null?null:body.webhook,p_cc:body.cc||''});
  if(p==='/api/fblog')return rpc('api_fb_log',{p_limit:2000});
- if(p==='/api/cinfo/edit')return rpc('api_edit_company',{p_key:body.key,p_ctype:body.ctype||'',p_sup:body.sup||'',p_account:body.account||'',p_pay_date:body.pay_date||'',p_c_name:body.c_name||'',p_c_title:body.c_title||'',p_c_email:body.c_email||'',p_c_mobile:body.c_mobile||''});
+ if(p==='/api/cinfo/edit')return rpc('api_edit_company',{p_key:body.key,p_ctype:body.ctype||'',p_pterm:body.pterm||'',p_sup:body.sup||'',p_account:body.account||'',p_pay_date:body.pay_date||'',p_c_name:body.c_name||'',p_c_title:body.c_title||'',p_c_email:body.c_email||'',p_c_mobile:body.c_mobile||''});
  if(p==='/api/cinfo/list')return rpc('api_company_list');
  if(p==='/api/cinfo/review')return rpc('api_company_info_review');
  if(p==='/api/cinfo/fill')return rpc('api_fill_company_managers');
  if(p==='/api/cinfo/alias')return rpc('api_set_company_alias',{p_name:body.name,p_ckey:body.ckey||'',p_none:!!body.none});
- if(p==='/api/cinfo/manual')return rpc('api_save_company_manual',{p_name:body.name,p_ctype:body.ctype||'',p_sup:body.sup,p_account:body.account,p_pay_date:body.pay_date,p_c_name:body.c_name,p_c_title:body.c_title,p_c_email:body.c_email,p_c_mobile:body.c_mobile});
+ if(p==='/api/cinfo/manual')return rpc('api_save_company_manual',{p_name:body.name,p_ctype:body.ctype||'',p_pterm:body.pterm||'',p_sup:body.sup,p_account:body.account,p_pay_date:body.pay_date,p_c_name:body.c_name,p_c_title:body.c_title,p_c_email:body.c_email,p_c_mobile:body.c_mobile});
  if(p==='/api/cinfo/sup')return rpc('api_set_sup_alias',{p_sname:body.sname,p_perm_name:body.perm});
  if(p==='/api/viewers')return rpc('api_save_viewers',{p_rows:body.rows});
  if(p==='/api/users'&&method==='GET')return rpc('api_get_perm');
@@ -538,13 +538,13 @@ async function showInfo(id){const ov=document.createElement('div');ov.style.cssT
  let r;try{r=await api('GET','/api/info/'+id)}catch(x){bx.innerHTML='<div class="name">'+esc(nm)+'</div><p>'+esc(x.message)+'</p><p><button type="button" class="alt" id="ixc">Close</button></p>';bx.querySelector('#ixc').onclick=close;return}
  const body=r.found?r.f.map(([k,v])=>'<div style="margin:6px 0"><b>'+esc(k)+' :</b> '+(esc(v)||'—')+'</div>').join(''):'<p>'+(r.noInfo?'No details were kept for this company.':'No details found for this company.')+(isOwnerUI?' You can choose or type them in the Company details tab.':'')+'</p>';
  bx.innerHTML='<div class="name">'+esc(nm)+'</div>'+body+'<p><button type="button" class="alt" id="ixc">Close</button></p>';bx.querySelector('#ixc').onclick=close}
-const CDH={name:'company name',ctype:'company type',sup:'supervisor team',account:'account holder name',pay_date:'payment date',c_name:'client name',c_title:'client title',c_email:'client email',c_mobile:'client mobile number'};
+const CDH={name:'company name',ctype:'company type',pterm:'payment term',sup:'supervisor team',account:'account holder name',pay_date:'payment date',c_name:'client name',c_title:'client title',c_email:'client email',c_mobile:'client mobile number'};
 async function readCompanies(buf){const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);
  const ws=wb.worksheets.find(w=>/payroll/i.test(w.name))||wb.worksheets[0];let hr=0,ix={};
  for(let r=1;r<=Math.min(10,ws.rowCount)&&!hr;r++){const m={};ws.getRow(r).eachCell((c,n)=>{const t=cellText(c.value).trim().toLowerCase().replace(/\s+/g,' ');for(const k in CDH)if(t===CDH[k])m[k]=n});if(m.name&&m.sup){hr=r;ix=m}}
  if(!hr)throw new Error('Cannot find the columns “Company Name” and “Supervisor Team” in the sheet.');
  const out=[];for(let r=hr+1;r<=ws.rowCount;r++){const row=ws.getRow(r),g=k=>ix[k]?cellText(row.getCell(ix[k]).value).trim().replace(/\s+/g,' '):'';const name=g('name');if(!name)continue;
-  out.push({name,ctype:g('ctype'),sup:g('sup'),account:g('account'),pay_date:g('pay_date'),c_name:g('c_name'),c_title:g('c_title'),c_email:g('c_email'),c_mobile:g('c_mobile')})}
+  out.push({name,ctype:g('ctype'),pterm:g('pterm'),sup:g('sup'),account:g('account'),pay_date:g('pay_date'),c_name:g('c_name'),c_title:g('c_title'),c_email:g('c_email'),c_mobile:g('c_mobile')})}
  return out}
 $('cdb').onclick=()=>{if(!window.ExcelJS){alert('The Excel library did not load (it needs internet access to cdnjs.cloudflare.com).');return}$('cdf').value='';$('cdf').click()};
 $('cdf').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('cdm').textContent='Reading…';
@@ -571,7 +571,7 @@ async function logLoad(){lgAll=await api('POST','/api/fblog',{});lgFilter()}
 function lgFilter(){const q=$('lgs').value.trim().toLowerCase(),L=lgAll.filter(x=>!q||(x.name+' '+x.email+' '+x.customer).toLowerCase().includes(q));
  $('lgl').innerHTML=L.length?'<div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Who</th><th>Company</th><th>Action</th></tr></thead><tbody>'+L.map(x=>'<tr><td>'+esc(whenTxt(x.at))+'</td><td>'+esc(x.name||'—')+'<div class="sm">'+esc(x.email)+'</div></td><td>'+esc(x.customer)+'</td><td>'+esc(x.action)+'</td></tr>').join('')+'</tbody></table></div>':'<p class="sm">No feedback has been saved yet.</p>'}
 $('lgs').oninput=lgFilter;
-const CDF=[['ctype','Company Service Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']];
+const CDF=[['ctype','Company Service Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pterm','Payment Term'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']];
 let cdAll=[];
 // The same supervisor can be spelled differently in the sheet (Hesham / Hisham, Mr.Waheed / Mr. Waheed): they count as ONE person.
 const sk=x=>nk(x).replace(/e/g,'i').replace(/(.)\1+/g,'$1');
@@ -594,7 +594,7 @@ $('cdp').addEventListener('click',async e=>{const t=e.target,card=t.closest('[da
  if(card.dataset.pi!=null){const p=cdState.rv.pending[+card.dataset.pi];
   if(t.dataset.cuse){const k=card.querySelector('[data-ck]').value;if(!k){alert('Choose a company from the list first.');return}await api('POST','/api/cinfo/alias',{name:p.name,ckey:k})}
   else if(t.dataset.cnone){await api('POST','/api/cinfo/alias',{name:p.name,none:true})}
-  else if(t.dataset.cman){const f=card.querySelector('[data-cform]');f.classList.remove('hid');f.innerHTML=[['ctype','Company Service Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']].map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%">').join('')+'<p><button type="button" data-csave="1">Save details</button></p>';return}
+  else if(t.dataset.cman){const f=card.querySelector('[data-cform]');f.classList.remove('hid');f.innerHTML=[['ctype','Company Service Type'],['sup','Supervisor Team'],['account','Account Holder Name'],['pterm','Payment Term'],['pay_date','Payment Date'],['c_name','Client Name'],['c_title','Client Title'],['c_email','Client Email'],['c_mobile','Client Mobile Number']].map(([k,l])=>'<div class="sm">'+l+'</div><input data-mf="'+k+'" style="width:100%">').join('')+'<p><button type="button" data-csave="1">Save details</button></p>';return}
   else if(t.dataset.csave){const o={name:p.name};card.querySelectorAll('[data-mf]').forEach(i=>o[i.dataset.mf]=i.value.trim());await api('POST','/api/cinfo/manual',o)}
   else return;
  }else{const a=cdState.fl.ask.filter(x=>x.why!=='notfound'&&x.why!=='nodetails')[+card.dataset.ai];
