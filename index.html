@@ -157,12 +157,22 @@ const allNote=r=>note(r)+(medNote(r)?' | '+medNote(r):'');
 const lwText=r=>{const a=note(r),m=medNote(r);return a&&m?a+' / '+MP(r)+': '+m:a||(m?MP(r)+': '+m:'')};
 const lwStat=r=>r.status&&r.medStatus?r.status+' / '+MP(r)+': '+r.medStatus:r.status||(r.medStatus?MP(r)+': '+r.medStatus:'');
 const lwPlan=r=>r.plan&&r.medDate&&r.plan!==r.medDate?r.plan+' / '+MP(r)+': '+r.medDate:r.plan||r.medDate||'';
-function miss(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
- if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.status==='Extra note only'&&!r.extra)m.push('extra note');if(r.medStatus==='Extra note only'&&!r.medExtra)m.push('Medical/Personnel note');if(r.medAmt||r.medStatus){const q=MS.find(x=>x[0]===r.medStatus);if(!q)m.push('Medical/Personnel feedback');else if(q[1]&&!r.medDate)m.push('Medical/Personnel date')}return m.length?'Missing: '+m.join(', '):''}
-// A line is complete when its Finance feedback is complete, OR when it has no Finance feedback and its Medical/Personnel feedback is complete
-// (a Medical or Personnel line is filled in the Medical / Personnel tab only).
-const medOk=r=>{const q=MS.find(x=>x[0]===r.medStatus);return !!q&&!(q[1]&&!r.medDate)&&!(r.medStatus==='Extra note only'&&!r.medExtra)};
-const done=r=>r.status?!miss(r):medOk(r);
+// What has to be filled depends on the line:  Payroll (Finance feedback only) · Medical or Personnel (Medical / Personnel feedback only) · both.
+function kindOf(r){const t=String(r.service||'').toLowerCase(),y=/payroll/.test(t),m=/medical|personnel/.test(t);
+ if(y&&m)return 'both';if(m)return 'med';if(y)return 'fin';
+ if(r.medType)return 'med';
+ if(r.medMgr)return r.mgr?'both':'med';
+ return '';}   // '' = the type is not known: what has been written decides
+function missFin(r){const s=ST.find(x=>x[0]===r.status);if(!s)return 'Choose a status';const m=[];
+ if(s[1]&&!r.date)m.push('date');if(s[2]&&!r.amt)m.push('amount');if((s[3]||(r.rem==='plan'&&ST.indexOf(s)<3))&&!r.plan)m.push('planned date');if(r.status==='Extra note only'&&!r.extra)m.push('extra note');
+ return m.length?'Missing: '+m.join(', '):''}
+function missMed(r){const q=MS.find(x=>x[0]===r.medStatus);if(!q)return 'Choose a Medical/Personnel status';const m=[];
+ if(q[1]&&!r.medDate)m.push('Medical/Personnel date');if(r.medStatus==='Extra note only'&&!r.medExtra)m.push('Medical/Personnel note');
+ return m.length?'Missing: '+m.join(', '):''}
+const hasMed=r=>!!(r.medStatus||r.medAmt||r.medExtra);
+function wants(r){const k=kindOf(r);if(k)return k;return r.status&&hasMed(r)?'both':hasMed(r)&&!r.status?'med':'fin'}
+function miss(r){const k=wants(r),a=k!=='med'?missFin(r):'',c=k!=='fin'?missMed(r):'';return [a,c].filter(Boolean).join(' · ')}
+const done=r=>!miss(r);
 
 let rows={},who='',meta={},ver=0,epoch='',drafts={},me=null,poll=null;
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -286,7 +296,7 @@ function paint(el,r){const i=ST.findIndex(s=>s[0]===r.status),s=ST[i];
  el.querySelectorAll('[data-f]').forEach(d=>d.classList.toggle('hid',!show[d.dataset.f]));
  const np=el.querySelector('[data-n="p"]');if(!np.querySelector('textarea'))np.textContent=lwText(r)||'The note for Finance appears here.';
  const mn=medNote(r),me=el.querySelector('[data-n="m"]');if(!me.querySelector('textarea'))me.textContent=mn||'The Medical/Personnel note appears here.';
- el.querySelectorAll('[data-edit]').forEach(b=>b.classList.toggle('hid',!isOwnerUI));const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=r.status?miss(r):'';
+ el.querySelectorAll('[data-edit]').forEach(b=>b.classList.toggle('hid',!isOwnerUI));const mq=MS.find(x=>x[0]===r.medStatus);el.querySelector('[data-f="medDate"]').classList.toggle('hid',!(mq&&mq[1]));el.querySelector('.err').textContent=(r.status||r.medStatus||r.medAmt)?miss(r):'';
  ['date','plan','medDate'].forEach(k=>{const i=el.querySelector('[data-k="'+k+'"]');if(!i)return;const s=i.parentNode.querySelector('.wd');if(s)s.textContent=r[k]?DW(r[k]).split(',')[0]:''});
  el.classList.toggle('done',!!done(r));const nt=el.querySelector('[data-nt]');if(nt)nt.classList.toggle('hid',!needsType(r));applyLock(el,r)}
 // The same person can be spelled differently (Said / Saeed). The chips, the "I'm" list and the filter treat them as ONE person
