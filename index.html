@@ -548,7 +548,7 @@ async function readCompanies(buf){const wb=new ExcelJS.Workbook();await wb.xlsx.
  return out}
 $('cdb').onclick=()=>{if(!window.ExcelJS){alert('The Excel library did not load (it needs internet access to cdnjs.cloudflare.com).');return}$('cdf').value='';$('cdf').click()};
 $('cdf').onchange=async e=>{const f=e.target.files[0];if(!f)return;$('cdm').textContent='Reading…';
- try{const L=await readCompanies(await f.arrayBuffer());if(!L.length)throw new Error('No companies found in the sheet.');await api('POST','/api/cinfo',{rows:L});$('cdm').textContent='Saved '+L.length+' companies.';await companyReview(true)}catch(x){$('cdm').textContent='Failed: '+x.message}};
+ try{const L=await readCompanies(await f.arrayBuffer());if(!L.length)throw new Error('No companies found in the sheet.');await api('POST','/api/cinfo',{rows:L});const wt=L.filter(c=>c.pterm).length;$('cdm').textContent='Saved '+L.length+' companies · '+wt+' with Payment Term'+(wt?'.':' – the column “Payment Term” was not found or is empty in this sheet.');await companyReview(true)}catch(x){$('cdm').textContent='Failed: '+x.message}};
 $('cdr').onclick=()=>companyReview(true).catch(x=>{$('cdm').textContent='Failed: '+x.message});
 let cdState=null;
 async function companyReview(fill){const rv=await api('POST','/api/cinfo/review',{});let fl={filled:0,ask:[],noMed:[]};
