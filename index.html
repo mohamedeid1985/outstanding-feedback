@@ -217,6 +217,8 @@ const exportMedNote=r=>'';
 const exportStatus=r=>r.status||r.medStatus||'';
 const exportPlan=r=>note(r)?(r.plan||''):(r.medDate||r.plan||'');
 const ctab={},fmt0=n=>n==null||n===''?'—':Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+// The Forward (✉️) button is switched off for now. Set this to true to show it again (everything behind it is kept).
+const FORWARD_ON=false;
 const MT=['Medical','Personnel'];
 // A line has "no type written" when the report's Service type is empty, no Invoice type was chosen, and the line carries Medical/Personnel
 // information (a Medical/Personnel manager, an amount or feedback). Then the app cannot know if it is Medical or Personnel, so it warns.
@@ -232,7 +234,7 @@ function cardHtml(r){const o=ST.map(s=>`<option${r.status===s[0]?' selected':''}
  const mo=MS.map(s=>`<option${r.medStatus===s[0]?' selected':''}>${s[0]}</option>`).join('');
  const mt=MT.map(s=>`<option${r.medType===s?' selected':''}>${s}</option>`).join('');
  const tb=ctab[r.id]==='med'?'med':'fin',medOn=!!(r.medAmt||r.medStatus||r.medExtra);
- return `<div class="top"><span class="name">${esc(r.customer)}${r.lwFile===false?'<span class="badge">New</span>':''} <span data-nt="1" class="badge hid" style="background:#f59e0b;color:#111" title="The report did not write the type of this line">Type not written</span> <button type="button" class="alt" data-exc="1" title="Forward: email the exception approver to approve the transfer for this company" style="padding:2px 9px;font-size:12px${(isViewer||!(isOwnerUI||(me&&me.exc)))?';display:none':''}">✉️ Forward</button> <button type="button" class="alt" data-info="1" title="Company details" aria-label="Company details" style="padding:0 7px;border-radius:50%;font-size:13px">ℹ️</button></span><span class="bal">${(Number(r.balance)||0).toLocaleString('en-US',{maximumFractionDigits:0})} EGP</span></div>
+ return `<div class="top"><span class="name">${esc(r.customer)}${r.lwFile===false?'<span class="badge">New</span>':''} <span data-nt="1" class="badge hid" style="background:#f59e0b;color:#111" title="The report did not write the type of this line">Type not written</span> <button type="button" class="alt" data-exc="1" title="Forward: email the exception approver to approve the transfer for this company" style="padding:2px 9px;font-size:12px${(!FORWARD_ON||isViewer||!(isOwnerUI||(me&&me.exc)))?';display:none':''}">✉️ Forward</button> <button type="button" class="alt" data-info="1" title="Company details" aria-label="Company details" style="padding:0 7px;border-radius:50%;font-size:13px">ℹ️</button></span><span class="bal">${(Number(r.balance)||0).toLocaleString('en-US',{maximumFractionDigits:0})} EGP</span></div>
 <div class="meta">Term: ${esc(r.term)} · ${esc(r.mgr)}${r.medMgr?' · Medical/Personnel: '+esc(r.medMgr):''}${isOwnerUI?' <button type="button" class="alt" data-mgedit="1" style="padding:2px 10px;font-size:12px">Edit</button>':''}</div>${lwHtml(r)}
 <div class="ctabs"><button type="button" data-ct="fin" class="${tb==='fin'?'on':''}">Finance feedback</button><button type="button" data-ct="med" class="${tb==='med'?'on':''}">Medical / Personnel feedback${medOn?' <b>•</b>':''}</button></div>
 <div data-pane="fin"${tb==='fin'?'':' class="hid"'}><div class="grid"><div><label>Status</label><select data-k="status"><option value="">— choose —</option>${o}</select></div>
@@ -331,7 +333,7 @@ $('list').addEventListener('click',async e=>{const t=e.target;
  if(t.dataset.ct){const el=t.closest('.card');ctab[el.id]=t.dataset.ct;el.querySelectorAll('[data-pane]').forEach(p=>p.classList.toggle('hid',p.dataset.pane!==t.dataset.ct));el.querySelectorAll('[data-ct]').forEach(b=>b.classList.toggle('on',b===t));return}
  if(t.dataset.edit){noteEditOpen(t);return}if(t.dataset.ndone||t.dataset.nreset){noteEditClose(t);return}
  if(t.dataset.info){showInfo(t.closest('.card').id);return}
- if(t.dataset.exc){sendExc(t.closest('.card').id,t);return}
+ if(t.dataset.exc&&FORWARD_ON){sendExc(t.closest('.card').id,t);return}
  if(t.dataset.mgedit){mgrEditOpen(t);return}if(t.dataset.mgsave){mgrEditSave(t);return}if(t.dataset.mgcancel){mgrEditCancel(t);return}
  if(t.dataset.rowlock){const el=t.closest('.card'),id=el.id,lock=!(rows[id]&&rows[id].ownLock);
   try{await rpc('api_set_row_lock',{p_id:id,p_locked:lock});await sync(true)}catch(x){alert(x.message);return}
